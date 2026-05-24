@@ -356,20 +356,6 @@ async function fetchLivePrices() {
     : '⚠ Sin datos — verificá la API key';
 }
 
-// Inicialización — corre directamente (DOMContentLoaded ya disparó)
-(function init() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    document.getElementById('api-key-input').value = saved;
-    fetchLivePrices();
-  } else {
-    portfolio.forEach(p => {
-      const cell = document.getElementById(`live-${p.ticker}`);
-      if (cell) cell.innerHTML = '<span style="color:var(--muted);font-size:11px">Ingresá API key</span>';
-    });
-  }
-})();
-
 // ── RENDER ────────────────────────────────────────────────────────────────────
 
 function fmt(n, dec=2) {
@@ -451,6 +437,20 @@ transactions.forEach(t => {
       <td>${t.amount}</td>
     </tr>`;
 });
+
+// ── INIT — corre al final, cuando todas las celdas ya existen ─────────────────
+(function init() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    document.getElementById('api-key-input').value = saved;
+    fetchLivePrices();
+  } else {
+    portfolio.forEach(p => {
+      const cell = document.getElementById(`live-${p.ticker}`);
+      if (cell) cell.innerHTML = '<span style="color:var(--muted);font-size:11px">Ingresá API key</span>';
+    });
+  }
+})();
 </script>
 </body>
 </html>
