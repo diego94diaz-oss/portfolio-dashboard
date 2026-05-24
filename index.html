@@ -233,8 +233,8 @@
             <th class="sortable" data-col="shares"    onclick="sortTable('shares')">   Acciones  <span class="sort-icon"></span></th>
             <th class="sortable" data-col="buyPrice"  onclick="sortTable('buyPrice')"> P. Compra <span class="sort-icon"></span></th>
             <th>P. Anterior</th>
-            <th>🔴 Precio Live</th>
-            <th>Var. día</th>
+            <th class="sortable" data-col="livePrice" onclick="sortTable('livePrice')">🔴 Precio Live <span class="sort-icon"></span></th>
+            <th class="sortable" data-col="chgPct"    onclick="sortTable('chgPct')">   Var. día     <span class="sort-icon"></span></th>
             <th class="sortable" data-col="value"     onclick="sortTable('value')">    Valor     <span class="sort-icon"></span></th>
             <th class="sortable" data-col="pct"       onclick="sortTable('pct')">      % Portafolio <span class="sort-icon"></span></th>
             <th class="sortable" data-col="ret"       onclick="sortTable('ret')">      Retorno   <span class="sort-icon"></span></th>
@@ -508,8 +508,17 @@ function renderTable() {
 
   if (sortCol) {
     visible.sort((a, b) => {
-      let va = a[sortCol], vb = b[sortCol];
-      if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+      let va, vb;
+      if (sortCol === 'livePrice') {
+        va = liveCache[a.ticker]?.c  ?? -Infinity;
+        vb = liveCache[b.ticker]?.c  ?? -Infinity;
+      } else if (sortCol === 'chgPct') {
+        va = liveCache[a.ticker]?.dp ?? -Infinity;
+        vb = liveCache[b.ticker]?.dp ?? -Infinity;
+      } else {
+        va = a[sortCol]; vb = b[sortCol];
+        if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+      }
       return (va < vb ? -1 : va > vb ? 1 : 0) * sortDir;
     });
   }
