@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portfolio Analyst Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --bg: #0f1117;
@@ -115,6 +116,12 @@
 
     .section-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
 
+    /* Charts */
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .chart-wrap { position: relative; height: 280px; }
+    @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } .chart-wrap { height: 240px; } }
+
     footer { text-align: center; padding: 24px; color: var(--muted); font-size: 11px; }
   </style>
 </head>
@@ -164,6 +171,22 @@
     <div class="alert">⚠️ <span>ASTS</span> — 22.2% del portafolio (umbral: 20%)</div>
     <div class="alert">⚠️ <span>GOOGL</span> — 22.2% del portafolio (umbral: 20%)</div>
     <div class="alert">⚠️ <span>ASST</span> — 21.7% del portafolio (umbral: 20%)</div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="section-title">Distribución del portafolio</div>
+      <div class="chart-wrap"><canvas id="chartDonut"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="section-title">Retorno por activo (%)</div>
+      <div class="chart-wrap"><canvas id="chartReturn"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="section-title">Valor mercado vs Costo ($)</div>
+      <div class="chart-wrap"><canvas id="chartCost"></canvas></div>
+    </div>
   </div>
 
   <!-- PORTFOLIO TABLE -->
@@ -452,6 +475,106 @@ transactions.forEach(t => {
       <td>${t.price}</td>
       <td>${t.amount}</td>
     </tr>`;
+});
+
+// ── CHARTS ────────────────────────────────────────────────────────────────────
+
+Chart.defaults.color = '#7a7f99';
+Chart.defaults.borderColor = '#2e3248';
+Chart.defaults.font.family = "'Segoe UI', sans-serif";
+
+const palette = [
+  '#6366f1','#3b82f6','#a855f7','#22c55e','#ef4444',
+  '#f59e0b','#06b6d4','#ec4899','#84cc16','#f97316',
+  '#14b8a6','#8b5cf6','#f43f5e','#0ea5e9','#d946ef',
+  '#10b981','#fb923c','#a3e635','#38bdf8','#e879f9'
+];
+
+// 1. Donut — distribución portafolio
+const donutLabels = portfolio.map(p => p.ticker);
+const donutData   = portfolio.map(p => p.value);
+new Chart(document.getElementById('chartDonut'), {
+  type: 'doughnut',
+  data: {
+    labels: donutLabels,
+    datasets: [{ data: donutData, backgroundColor: palette, borderWidth: 2, borderColor: '#1a1d27' }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '62%',
+    plugins: {
+      legend: { position: 'right', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label}: $${fmt(ctx.parsed, 0)} (${((ctx.parsed / 41604) * 100).toFixed(1)}%)`
+        }
+      }
+    }
+  }
+});
+
+// 2. Barras horizontales — retorno % por activo
+const sortedByRet = [...portfolio].sort((a, b) => b.ret - a.ret);
+new Chart(document.getElementById('chartReturn'), {
+  type: 'bar',
+  data: {
+    labels: sortedByRet.map(p => p.ticker),
+    datasets: [{
+      label: 'Retorno %',
+      data: sortedByRet.map(p => p.ret),
+      backgroundColor: sortedByRet.map(p => p.ret >= 0 ? '#22c55e99' : '#ef444499'),
+      borderColor:     sortedByRet.map(p => p.ret >= 0 ? '#22c55e' : '#ef4444'),
+      borderWidth: 1,
+      borderRadius: 4
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x > 0 ? '+' : ''}${ctx.parsed.x}%` } }
+    },
+    scales: {
+      x: { grid: { color: '#2e3248' }, ticks: { callback: v => v + '%' } },
+      y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+// 3. Barras agrupadas — valor mercado vs costo
+const top10 = [...portfolio].sort((a, b) => b.value - a.value).slice(0, 10);
+new Chart(document.getElementById('chartCost'), {
+  type: 'bar',
+  data: {
+    labels: top10.map(p => p.ticker),
+    datasets: [
+      {
+        label: 'Valor mercado',
+        data: top10.map(p => p.value),
+        backgroundColor: '#6366f1bb',
+        borderColor: '#6366f1',
+        borderWidth: 1, borderRadius: 4
+      },
+      {
+        label: 'Costo',
+        data: top10.map(p => parseFloat((p.buyPrice * p.shares).toFixed(0))),
+        backgroundColor: '#3b82f6bb',
+        borderColor: '#3b82f6',
+        borderWidth: 1, borderRadius: 4
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { boxWidth: 12, font: { size: 11 } } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: $${fmt(ctx.parsed.y, 0)}` } }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      y: { grid: { color: '#2e3248' }, ticks: { callback: v => '$' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } }
+    }
+  }
 });
 
 // ── INIT — corre al final, cuando todas las celdas ya existen ─────────────────
