@@ -255,10 +255,24 @@
     <!-- RECOMMENDATIONS SUMMARY -->
     <div>
       <div class="section-title">Resumen de recomendaciones (último análisis)</div>
+      <div class="table-controls">
+        <input class="table-search" id="recs-search" type="text" placeholder="🔍 Buscar ticker..." oninput="applyRecsFilters()" />
+        <div class="filter-btns">
+          <button class="filter-btn active" data-rfilter="all"  onclick="setRecsFilter('all',  this)">Todos</button>
+          <button class="filter-btn f-buy"  data-rfilter="buy"  onclick="setRecsFilter('buy',  this)">COMPRAR +</button>
+          <button class="filter-btn f-hold" data-rfilter="hold" onclick="setRecsFilter('hold', this)">MANTENER</button>
+          <button class="filter-btn f-sell" data-rfilter="sell" onclick="setRecsFilter('sell', this)">VENDER</button>
+          <button class="filter-btn f-warn" data-rfilter="warn" onclick="setRecsFilter('warn', this)">REVISAR</button>
+        </div>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Ticker</th><th>Upside</th><th>Señal</th></tr>
+            <tr>
+              <th class="sortable" data-rcol="ticker"  onclick="sortRecs('ticker')">  Ticker <span class="sort-icon"></span></th>
+              <th class="sortable" data-rcol="upside"  onclick="sortRecs('upside')">  Upside <span class="sort-icon"></span></th>
+              <th>Señal</th>
+            </tr>
           </thead>
           <tbody id="recs-body"></tbody>
         </table>
@@ -533,23 +547,71 @@ portfolio.slice(0, 10).forEach((p, i) => {
     </div>`;
 });
 
-// Recommendations table
-const rb = document.getElementById('recs-body');
-recommendations.forEach(r => {
-  const upColor = r.upside >= 0 ? 'green' : 'red';
-  const upSign  = r.upside >= 0 ? '+' : '';
-  let badge = '';
-  if (r.signal === 'buy')  badge = '<span class="badge badge-buy">COMPRAR +</span>';
-  if (r.signal === 'hold') badge = '<span class="badge badge-hold">MANTENER</span>';
-  if (r.signal === 'sell') badge = '<span class="badge badge-sell">VENDER</span>';
-  if (r.signal === 'warn') badge = '<span class="badge badge-warn">REVISAR</span>';
-  rb.innerHTML += `
-    <tr>
-      <td><strong>${r.ticker}</strong></td>
-      <td class="${upColor}">${upSign}${r.upside}%</td>
-      <td>${badge}</td>
-    </tr>`;
-});
+// ── RECOMMENDATIONS FILTER & SORT ─────────────────────────────────────────────
+let recsFilter = 'all';
+let recsSortCol = null;
+let recsSortDir = 1;
+
+function setRecsFilter(filter, btn) {
+  recsFilter = filter;
+  document.querySelectorAll('[data-rfilter]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRecs();
+}
+
+function applyRecsFilters() { renderRecs(); }
+
+function sortRecs(col) {
+  if (recsSortCol === col) { recsSortDir *= -1; } else { recsSortCol = col; recsSortDir = 1; }
+  document.querySelectorAll('th[data-rcol]').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.rcol === col) th.classList.add(recsSortDir === 1 ? 'sort-asc' : 'sort-desc');
+  });
+  renderRecs();
+}
+
+function renderRecs() {
+  const search = (document.getElementById('recs-search').value || '').trim().toLowerCase();
+  const rb = document.getElementById('recs-body');
+
+  let visible = recommendations.filter(r => {
+    if (search && !r.ticker.toLowerCase().includes(search)) return false;
+    if (recsFilter === 'all') return true;
+    return r.signal === recsFilter;
+  });
+
+  if (recsSortCol) {
+    visible.sort((a, b) => {
+      let va = a[recsSortCol], vb = b[recsSortCol];
+      if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+      return (va < vb ? -1 : va > vb ? 1 : 0) * recsSortDir;
+    });
+  }
+
+  if (visible.length === 0) {
+    rb.innerHTML = '<tr><td colspan="3" class="no-results">Sin resultados.</td></tr>';
+    return;
+  }
+
+  rb.innerHTML = '';
+  visible.forEach(r => {
+    const upColor = r.upside >= 0 ? 'green' : 'red';
+    const upSign  = r.upside >= 0 ? '+' : '';
+    let badge = '';
+    if (r.signal === 'buy')  badge = '<span class="badge badge-buy">COMPRAR +</span>';
+    if (r.signal === 'hold') badge = '<span class="badge badge-hold">MANTENER</span>';
+    if (r.signal === 'sell') badge = '<span class="badge badge-sell">VENDER</span>';
+    if (r.signal === 'warn') badge = '<span class="badge badge-warn">REVISAR</span>';
+    rb.innerHTML += `
+      <tr>
+        <td><strong>${r.ticker}</strong></td>
+        <td class="${upColor}">${upSign}${r.upside}%</td>
+        <td>${badge}</td>
+      </tr>`;
+  });
+}
+
+renderRecs();
 
 // Transactions
 const tb = document.getElementById('tx-body');
