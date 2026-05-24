@@ -78,6 +78,20 @@
     .type-venta { color: var(--red); font-weight: 600; }
     .type-dividendo { color: var(--purple); font-weight: 600; }
 
+    /* Live price */
+    .live-cell { display: flex; align-items: center; gap: 6px; }
+    .live-price { font-weight: 700; }
+    .live-chg { font-size: 11px; }
+    .spinner { width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .api-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 28px; display: flex; align-items: center; gap: 12px; font-size: 13px; }
+    .api-bar input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; color: var(--text); font-size: 12px; width: 260px; outline: none; }
+    .api-bar input:focus { border-color: var(--accent); }
+    .api-bar button { background: var(--accent); border: none; border-radius: 6px; padding: 5px 14px; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .api-bar button:hover { opacity: 0.85; }
+    .api-bar .refresh-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 14px; color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; }
+    .api-bar .last-update { color: var(--muted); font-size: 11px; margin-left: auto; }
+
     /* Tabs */
     .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
     .tab { padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all 0.15s; }
@@ -94,6 +108,14 @@
   <h1>📊 Portfolio Analyst Dashboard</h1>
   <span>Última actualización: 2026-05-24 &nbsp;|&nbsp; Broker: IBK / Racional / Zesty</span>
 </header>
+
+<div class="api-bar">
+  <span style="color:var(--muted)">Finnhub API Key:</span>
+  <input id="api-key-input" type="text" placeholder="Pegá tu API key de finnhub.io aquí" />
+  <button onclick="saveAndFetch()">Actualizar precios</button>
+  <button class="refresh-btn" onclick="fetchLivePrices()">↻ Refrescar</button>
+  <span class="last-update" id="last-update"></span>
+</div>
 
 <div class="main">
 
@@ -139,7 +161,8 @@
             <th>Empresa</th>
             <th>Acciones</th>
             <th>P. Compra</th>
-            <th>P. Actual</th>
+            <th>P. Anterior</th>
+            <th>🔴 Precio Live</th>
             <th>Valor</th>
             <th>% Portafolio</th>
             <th>Retorno</th>
@@ -251,6 +274,95 @@ const transactions = [
   { date:"2026-03-30", asset:"TROW — T. Rowe Price",  type:"Compra",  shares:"4.47",    price:"$89.12",    amount:"$400"   },
 ];
 
+// ── LIVE PRICES (Finnhub) ─────────────────────────────────────────────────────
+
+const STORAGE_KEY = 'finnhub_api_key';
+
+// Tickers that map differently in Finnhub
+const tickerMap = {
+  'ASST-VRS': null,   // no standard ticker, skip
+  'MSTR-VRS': null,   // no standard ticker, skip
+  'NVO':      'NVO',
+  'MELI':     'MELI',
+  'ASTS':     'ASTS',
+};
+
+function getApiKey() {
+  return document.getElementById('api-key-input').value.trim()
+      || localStorage.getItem(STORAGE_KEY) || '';
+}
+
+function saveAndFetch() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { alert('Pegá tu API key de finnhub.io primero.'); return; }
+  localStorage.setItem(STORAGE_KEY, key);
+  fetchLivePrices();
+}
+
+async function fetchLivePrices() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    portfolio.forEach(p => {
+      const cell = document.getElementById(`live-${p.ticker}`);
+      if (cell) cell.innerHTML = '<span style="color:var(--muted);font-size:11px">Ingresá API key</span>';
+    });
+    return;
+  }
+
+  const fetchTicker = async (symbol) => {
+    const mapped = tickerMap.hasOwnProperty(symbol) ? tickerMap[symbol] : symbol;
+    if (!mapped) return null;
+    try {
+      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${mapped}&token=${apiKey}`);
+      return await r.json();
+    } catch { return null; }
+  };
+
+  const promises = portfolio.map(p => fetchTicker(p.ticker));
+  const results  = await Promise.all(promises);
+
+  let anyLive = false;
+  results.forEach((data, i) => {
+    const p    = portfolio[i];
+    const cell = document.getElementById(`live-${p.ticker}`);
+    if (!cell) return;
+
+    if (!data || !data.c || data.c === 0) {
+      cell.innerHTML = '<span style="color:var(--muted);font-size:11px">—</span>';
+      return;
+    }
+
+    anyLive = true;
+    const chgPct = data.dp ?? 0;
+    const chgColor = chgPct >= 0 ? 'var(--green)' : 'var(--red)';
+    const chgSign  = chgPct >= 0 ? '+' : '';
+    cell.innerHTML = `
+      <div class="live-cell">
+        <span class="live-price">$${fmt(data.c)}</span>
+        <span class="live-chg" style="color:${chgColor}">${chgSign}${chgPct.toFixed(2)}%</span>
+      </div>`;
+  });
+
+  const now = new Date().toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
+  document.getElementById('last-update').textContent = anyLive
+    ? `Precios actualizados: ${now}`
+    : 'Sin datos (verificá la API key)';
+}
+
+// Auto-load key from localStorage and fetch on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    document.getElementById('api-key-input').value = saved;
+    fetchLivePrices();
+  } else {
+    portfolio.forEach(p => {
+      const cell = document.getElementById(`live-${p.ticker}`);
+      if (cell) cell.innerHTML = '<span style="color:var(--muted);font-size:11px">Ingresá API key</span>';
+    });
+  }
+});
+
 // ── RENDER ────────────────────────────────────────────────────────────────────
 
 function fmt(n, dec=2) {
@@ -271,12 +383,13 @@ portfolio.forEach(p => {
     if (rec.signal === 'warn') badge = '<span class="badge badge-warn">REVISAR</span>';
   }
   pb.innerHTML += `
-    <tr>
+    <tr id="row-${p.ticker}">
       <td><strong>${p.ticker}</strong>${p.alert ? ' ⚠️' : ''}</td>
       <td style="color:var(--muted)">${p.name}</td>
       <td>${fmt(p.shares, p.shares < 10 ? 4 : 2)}</td>
       <td>$${fmt(p.buyPrice)}</td>
-      <td>$${fmt(p.price)}</td>
+      <td style="color:var(--muted)">$${fmt(p.price)}</td>
+      <td id="live-${p.ticker}"><span class="spinner"></span></td>
       <td><strong>$${fmt(p.value, 0)}</strong></td>
       <td>${p.pct}%</td>
       <td class="${retColor}">${retSign}${p.ret}%</td>
