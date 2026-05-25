@@ -180,9 +180,9 @@
       <div class="sub">Dividendos cobrados: $78.60</div>
     </div>
     <div class="card">
-      <div class="label">Mayor ganador</div>
-      <div class="value green">ASTS</div>
-      <div class="sub">+376.6% desde $22.18</div>
+      <div class="label">Variación del día</div>
+      <div class="value" id="day-chg-value" style="color:var(--muted)">—</div>
+      <div class="sub" id="day-chg-sub">Cargá precios live</div>
     </div>
   </div>
 
@@ -429,6 +429,25 @@ async function fetchLivePrices() {
   if (lastEl) lastEl.textContent = ok > 0
     ? `✓ ${ok} precios actualizados — ${now}`
     : '⚠ Sin datos — verificá la API key';
+
+  // Actualizar card de variación del día
+  let totalDayChg = 0, coveredValue = 0;
+  for (const p of portfolio) {
+    const d = liveCache[p.ticker];
+    if (d && d.d != null) {
+      totalDayChg  += p.shares * d.d;
+      coveredValue += p.value;
+    }
+  }
+  const dayValEl = document.getElementById('day-chg-value');
+  const daySubEl = document.getElementById('day-chg-sub');
+  if (dayValEl && coveredValue > 0) {
+    const sign = totalDayChg >= 0 ? '+' : '';
+    const pct  = (totalDayChg / coveredValue) * 100;
+    dayValEl.className = 'value ' + (totalDayChg >= 0 ? 'green' : 'red');
+    dayValEl.textContent = `${sign}$${fmt(Math.abs(totalDayChg), 0)}`;
+    daySubEl.textContent = `${sign}${pct.toFixed(2)}% sobre el portafolio`;
+  }
 }
 
 function applyLiveCell(ticker, data) {
