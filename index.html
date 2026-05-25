@@ -143,6 +143,21 @@
     @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } .chart-wrap { height: 240px; } }
 
     footer { text-align: center; padding: 24px; color: var(--muted); font-size: 11px; }
+
+    /* Detail modal */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:1000; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px; max-width:480px; width:90%; position:relative; }
+    .modal-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+    .modal-ticker { font-size:20px; font-weight:800; }
+    .modal-close { position:absolute; top:14px; right:16px; background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; line-height:1; }
+    .modal-close:hover { color:var(--text); }
+    .modal-section { margin-bottom:14px; }
+    .modal-label { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--muted); margin-bottom:4px; }
+    .modal-text { font-size:13px; color:var(--text); line-height:1.55; }
+    .modal-risk { font-size:13px; color:var(--yellow); line-height:1.55; }
+    .badge[data-detail] { cursor:pointer; }
+    .badge[data-detail]:hover { opacity:0.8; }
   </style>
 </head>
 <body>
@@ -292,6 +307,26 @@
 
 <footer>Portfolio Analyst Dashboard — Datos orientativos, no constituyen asesoría financiera regulada.</footer>
 
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-header">
+      <span class="modal-ticker" id="modal-ticker"></span>
+      <span id="modal-badge"></span>
+      <span id="modal-upside" style="font-size:13px;color:var(--muted)"></span>
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">Fundamento</div>
+      <div class="modal-text" id="modal-fundamento"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">⚠ Riesgo principal</div>
+      <div class="modal-risk" id="modal-riesgo"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
 
@@ -318,22 +353,54 @@ const portfolio = [
 ];
 
 const recommendations = [
-  { ticker:"ASST",  upside:59.3,  signal:"buy"  },
-  { ticker:"NVO",   upside:45.8,  signal:"buy"  },
-  { ticker:"NKE",   upside:47.3,  signal:"buy"  },
-  { ticker:"MSTR",  upside:79.6,  signal:"buy"  },
-  { ticker:"MELI",  upside:34.1,  signal:"buy"  },
-  { ticker:"ADBE",  upside:33.7,  signal:"buy"  },
-  { ticker:"MSFT",  upside:33.9,  signal:"buy"  },
-  { ticker:"AMZN",  upside:21.6,  signal:"hold" },
-  { ticker:"GOOGL", upside:6.9,   signal:"hold" },
-  { ticker:"NIO",   upside:10.9,  signal:"hold" },
-  { ticker:"PEP",   upside:6.9,   signal:"hold" },
-  { ticker:"IIPR",  upside:9.7,   signal:"hold" },
-  { ticker:"TROW",  upside:3.7,   signal:"hold" },
-  { ticker:"FLWS",  upside:37.5,  signal:"warn" },
-  { ticker:"LDI",   upside:38.5,  signal:"warn" },
-  { ticker:"ASTS",  upside:-17.5, signal:"sell" },
+  { ticker:"ASST",  upside:59.3,  signal:"buy",
+    fundamento:"Upside de 59% sobre precio objetivo. TD Cowen y H.C. Wainwright subieron sus targets a $30 y $38 respectivamente con rating Buy activo. Empresa de gestión de activos en expansión.",
+    riesgo:"Cobertura analista aún limitada (4 analistas); volatilidad alta por ser una empresa reciente." },
+  { ticker:"NVO",   upside:45.8,  signal:"buy",
+    fundamento:"Upside de 45.8% con consensus Buy. Fabricante de Ozempic/Wegovy con posición dominante en GLP-1. Caída reciente crea punto de entrada atractivo respecto al target.",
+    riesgo:"Presión de precios sobre GLP-1 por parte del gobierno y competencia creciente (Eli Lilly)." },
+  { ticker:"NKE",   upside:47.3,  signal:"buy",
+    fundamento:"Upside del 47% con consenso Buy (38 analistas). El stock cotiza en mínimos históricos recientes. Nueva dirección ejecutiva implementando plan de recuperación de márgenes y canales directos.",
+    riesgo:"Ejecución del turnaround; competencia de On Running y Hoka en segmento premium." },
+  { ticker:"MSTR",  upside:79.6,  signal:"buy",
+    fundamento:"Upside de casi 80% con consenso Strong Buy unánime (14 Buy, 1 Hold, 0 Sell). Compañía acumuladora de Bitcoin con alta correlación al ciclo cripto en expansión.",
+    riesgo:"Correlación total con Bitcoin; una corrección cripto impacta directamente el NAV." },
+  { ticker:"MELI",  upside:34.1,  signal:"buy",
+    fundamento:"Upside del 34% post-caída del 13% tras earnings de Q1 2026. Ingresos crecieron 49% YoY a $8.85B. La caída fue por reinversión agresiva en logística, no por deterioro del negocio.",
+    riesgo:"Presión de márgenes por expansión en Brasil; riesgo cambiario en Latam." },
+  { ticker:"ADBE",  upside:33.7,  signal:"buy",
+    fundamento:"Upside del 33.7% con amplia cobertura (39 analistas). Stock cayó 40% en el último año, generando punto de entrada atractivo. Revenue de IA triplicándose; 16 de 39 analistas en Buy/Strong Buy.",
+    riesgo:"Competencia de herramientas de IA generativa gratuitas que erosionen su base de suscriptores." },
+  { ticker:"MSFT",  upside:33.9,  signal:"buy",
+    fundamento:"Upside del 33.9% con consensus Strong Buy de 55 analistas. Crecimiento del backlog de IA casi al 100% YoY. Azure y Copilot como principales motores de crecimiento para 2026–2027.",
+    riesgo:"Retorno sobre capex en IA aún incierto; posibles ajustes de target si los márgenes decepcionan." },
+  { ticker:"AMZN",  upside:21.6,  signal:"hold",
+    fundamento:"Upside del 21.6%, por debajo del umbral del 30%. Consensus Strong Buy con 62 analistas Buy. AWS y publicidad siguen siendo motores sólidos, pero el precio actual ya descuenta gran parte del crecimiento esperado.",
+    riesgo:"Desaceleración de AWS ante competencia de Azure y Google Cloud." },
+  { ticker:"GOOGL", upside:6.9,   signal:"hold",
+    fundamento:"Consensus Strong Buy pero upside solo 6.9% desde niveles actuales. El precio ya refleja en gran parte las expectativas de crecimiento en IA y publicidad digital.",
+    riesgo:"Presión regulatoria antimonopolio en EE.UU. y Europa." },
+  { ticker:"NIO",   upside:10.9,  signal:"hold",
+    fundamento:"Upside moderado de 10.9%. Mayoría analistas Buy pero el target no justifica acción agresiva. Empresa de EVs china con mercado doméstico competitivo.",
+    riesgo:"Tensiones geopolíticas EE.UU.-China y riesgo de delisting de ADRs." },
+  { ticker:"PEP",   upside:6.9,   signal:"hold",
+    fundamento:"Upside bajo del 6.9%. Empresa defensiva de consumo masivo con dividendo sólido, pero sin catalizador de crecimiento a corto plazo. Consenso mixto: 6 Buy, 15 Hold, 2 Sell.",
+    riesgo:"Presión en volúmenes por cambios de hábito del consumidor y competencia de marcas blancas." },
+  { ticker:"IIPR",  upside:9.7,   signal:"hold",
+    fundamento:"Upside del 9.7%. REIT del sector cannabis con dividendo alto pero consenso neutro (Hold). Sector cannabis sigue bajo presión regulatoria en EE.UU.",
+    riesgo:"Riesgo de impago de arrendatarios del sector cannabis; estancamiento de legalización federal." },
+  { ticker:"TROW",  upside:3.7,   signal:"hold",
+    fundamento:"Upside mínimo del 3.7%. Consenso negativo: 12 analistas con rating Sell y promedio target de $99.17, lo que implica downside. Gestora de fondos activos bajo presión estructural frente a ETFs pasivos.",
+    riesgo:"Salida de flujos hacia vehículos pasivos; contracción de márgenes en gestión activa." },
+  { ticker:"FLWS",  upside:37.5,  signal:"warn",
+    fundamento:"Upside matemático >30% pero con cobertura de solo 1 analista y fundamentales deteriorados: revenue esperado caer 10–12% en 2026 y pérdida por acción se duplica. La tesis no está soportada.",
+    riesgo:"Continuo deterioro operativo; pérdidas crecientes en 2026." },
+  { ticker:"LDI",   upside:38.5,  signal:"warn",
+    fundamento:"Aunque el upside matemático supera el 30%, el consenso de analistas es neutro-negativo (0 Buy, 4 Hold, 2 Sell). Sector hipotecario bajo presión con tasas Fed elevadas.",
+    riesgo:"Datos de precio muy dispersos entre fuentes; confirmar precio actual antes de operar." },
+  { ticker:"ASTS",  upside:-17.5, signal:"sell",
+    fundamento:"El precio actual supera el precio objetivo de consenso en 17.5%. El stock subió +10% en las últimas 24h, alejándose aún más del target. Consenso Hold con upside negativo a estos niveles.",
+    riesgo:"Alta volatilidad; pérdidas proyectadas para 2026 con revenue guidance de $150M–$200M." },
 ];
 
 const transactions = [
@@ -450,6 +517,26 @@ async function fetchLivePrices() {
   }
 }
 
+function showDetail(ticker) {
+  const r = recommendations.find(x => x.ticker === ticker);
+  if (!r) return;
+  const labels = { buy:'COMPRAR +', hold:'MANTENER', sell:'VENDER', warn:'REVISAR' };
+  const badgeClass = { buy:'badge-buy', hold:'badge-hold', sell:'badge-sell', warn:'badge-warn' };
+  const sign = r.upside >= 0 ? '+' : '';
+  document.getElementById('modal-ticker').textContent = ticker;
+  document.getElementById('modal-badge').innerHTML = `<span class="badge ${badgeClass[r.signal]}">${labels[r.signal]}</span>`;
+  document.getElementById('modal-upside').textContent = `Upside: ${sign}${r.upside}%`;
+  document.getElementById('modal-fundamento').textContent = r.fundamento || '—';
+  document.getElementById('modal-riesgo').textContent = r.riesgo || '—';
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('detail-modal') || e.target.classList.contains('modal-close')) {
+    document.getElementById('detail-modal').classList.remove('open');
+  }
+}
+
 function applyLiveCell(ticker, data) {
   const lv = document.getElementById(`live-${ticker}`);
   const ch = document.getElementById(`chg-${ticker}`);
@@ -548,10 +635,10 @@ function renderTable() {
     const rec = recMap[p.ticker];
     let badge = '';
     if (rec) {
-      if (rec.signal === 'buy')  badge = '<span class="badge badge-buy">COMPRAR +</span>';
-      if (rec.signal === 'hold') badge = '<span class="badge badge-hold">MANTENER</span>';
-      if (rec.signal === 'sell') badge = '<span class="badge badge-sell">VENDER</span>';
-      if (rec.signal === 'warn') badge = '<span class="badge badge-warn">REVISAR</span>';
+      if (rec.signal === 'buy')  badge = `<span class="badge badge-buy"  data-detail onclick="showDetail('${rec.ticker}')">COMPRAR +</span>`;
+      if (rec.signal === 'hold') badge = `<span class="badge badge-hold" data-detail onclick="showDetail('${rec.ticker}')">MANTENER</span>`;
+      if (rec.signal === 'sell') badge = `<span class="badge badge-sell" data-detail onclick="showDetail('${rec.ticker}')">VENDER</span>`;
+      if (rec.signal === 'warn') badge = `<span class="badge badge-warn" data-detail onclick="showDetail('${rec.ticker}')">REVISAR</span>`;
     }
     pb.innerHTML += `
       <tr id="row-${p.ticker}">
