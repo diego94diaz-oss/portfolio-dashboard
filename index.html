@@ -677,6 +677,8 @@ new Chart(document.getElementById('chartDonut'), {
               text: `${label}  $${fmt(ds.data[i], 0)}  ${((ds.data[i] / total) * 100).toFixed(1)}%`,
               fillStyle: ds.backgroundColor[i],
               strokeStyle: ds.backgroundColor[i],
+              fontColor: '#e8eaf0',
+              color: '#e8eaf0',
               lineWidth: 0,
               index: i,
               hidden: false
