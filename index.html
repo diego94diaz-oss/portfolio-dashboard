@@ -246,13 +246,7 @@
     </div>
   </div>
 
-  <div class="grid-2">
-    <!-- ALLOCATION BAR CHART -->
-    <div>
-      <div class="section-title">Distribución del portafolio</div>
-      <div class="section-wrap" id="allocation-chart"></div>
-    </div>
-
+  <div class="grid-full">
     <!-- RECOMMENDATIONS SUMMARY -->
     <div>
       <div class="section-title">Resumen de recomendaciones (último análisis)</div>
@@ -279,7 +273,7 @@
         </table>
       </div>
     </div>
-  </div>
+  </div> <!-- end grid-full recs -->
 
   <!-- TRANSACTIONS -->
   <div class="grid-full">
@@ -565,21 +559,6 @@ function renderTable() {
 // Portfolio table — render initial state
 renderTable();
 
-// Allocation bars
-const colors = ['#6366f1','#3b82f6','#a855f7','#22c55e','#ef4444','#f59e0b','#06b6d4','#ec4899','#84cc16','#f97316'];
-const ac = document.getElementById('allocation-chart');
-portfolio.slice(0, 10).forEach((p, i) => {
-  ac.innerHTML += `
-    <div class="bar-row">
-      <div class="bar-label">${p.ticker}</div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${Math.min(p.pct/25*100,100)}%;background:${colors[i%colors.length]}"></div>
-      </div>
-      <div class="bar-pct">${p.pct}%</div>
-      <div class="bar-val">$${fmt(p.value,0)}</div>
-    </div>`;
-});
-
 // ── RECOMMENDATIONS FILTER & SORT ─────────────────────────────────────────────
 let recsFilter = 'all';
 let recsSortCol = null;
@@ -687,10 +666,30 @@ new Chart(document.getElementById('chartDonut'), {
     responsive: true, maintainAspectRatio: false,
     cutout: '62%',
     plugins: {
-      legend: { position: 'right', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } },
+      legend: {
+        position: 'right',
+        labels: {
+          boxWidth: 12, padding: 10, font: { size: 11 },
+          generateLabels: chart => {
+            const ds = chart.data.datasets[0];
+            const total = ds.data.reduce((a, b) => a + b, 0);
+            return chart.data.labels.map((label, i) => ({
+              text: `${label}  $${fmt(ds.data[i], 0)}  ${((ds.data[i] / total) * 100).toFixed(1)}%`,
+              fillStyle: ds.backgroundColor[i],
+              strokeStyle: ds.backgroundColor[i],
+              lineWidth: 0,
+              index: i,
+              hidden: false
+            }));
+          }
+        }
+      },
       tooltip: {
         callbacks: {
-          label: ctx => ` ${ctx.label}: $${fmt(ctx.parsed, 0)} (${((ctx.parsed / 41604) * 100).toFixed(1)}%)`
+          label: ctx => {
+            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+            return ` ${ctx.label}: $${fmt(ctx.parsed, 0)} (${((ctx.parsed / total) * 100).toFixed(1)}%)`;
+          }
         }
       }
     }
