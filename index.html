@@ -28,7 +28,7 @@
     .main { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
 
     /* Summary cards */
-    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
     .card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 8px; }
     .card .value { font-size: 26px; font-weight: 700; }
@@ -53,7 +53,8 @@
     /* Responsive */
     @media (max-width: 768px) {
       .main { padding: 16px; }
-      .cards { grid-template-columns: 1fr 1fr; }
+      .cards { grid-template-columns: 1fr 1fr 1fr; }
+      @media (max-width: 600px) { .cards { grid-template-columns: 1fr 1fr; } }
       .grid-2 { grid-template-columns: 1fr; }
       header { flex-direction: column; align-items: flex-start; gap: 4px; }
       .api-bar { flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
@@ -198,6 +199,11 @@
       <div class="label">Variación del día</div>
       <div class="value" id="day-chg-value" style="color:var(--muted)">—</div>
       <div class="sub" id="day-chg-sub">Cargá precios live</div>
+    </div>
+    <div class="card">
+      <div class="label">Efectivo disponible</div>
+      <div class="value blue">$2,797</div>
+      <div class="sub">IBK $2,795.50 &nbsp;·&nbsp; Zesty $2.17 &nbsp;·&nbsp; Racional $0</div>
     </div>
   </div>
 
