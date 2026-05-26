@@ -137,6 +137,20 @@
     th:not(.sort-asc):not(.sort-desc) .sort-icon::after { content: ' ⇅'; }
     .no-results { text-align: center; padding: 28px; color: var(--muted); font-size: 13px; }
 
+    /* Column picker */
+    .col-picker { position: relative; display: inline-block; }
+    .col-picker-btn { padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .col-picker-btn:hover { border-color: var(--accent); color: var(--text); }
+    .col-picker-menu { display: none; position: absolute; top: 100%; right: 0; margin-top: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 0; min-width: 200px; z-index: 50; box-shadow: 0 6px 22px rgba(0,0,0,0.4); }
+    .col-picker.open .col-picker-menu { display: block; }
+    .col-picker-item { display: flex; align-items: center; gap: 8px; padding: 6px 14px; font-size: 12px; color: var(--text); cursor: pointer; user-select: none; }
+    .col-picker-item:hover { background: var(--surface2); }
+    .col-picker-item input { accent-color: var(--accent); cursor: pointer; }
+    .col-picker-divider { height: 1px; background: var(--border); margin: 6px 0; }
+    .col-picker-footer { padding: 6px 14px; font-size: 11px; color: var(--muted); display: flex; gap: 10px; }
+    .col-picker-footer a { color: var(--accent); cursor: pointer; text-decoration: none; }
+    .col-picker-footer a:hover { text-decoration: underline; }
+
     /* Charts */
     .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 24px; }
     .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
@@ -165,7 +179,7 @@
 
 <header>
   <h1>📊 Portfolio Analyst Dashboard</h1>
-  <span>Última actualización: 2026-05-24 &nbsp;|&nbsp; Broker: IBK / Racional / Zesty</span>
+  <span>Última actualización: 2026-05-25 &nbsp;|&nbsp; Broker: IBK / Racional / Zesty</span>
 </header>
 
 <div class="api-bar">
@@ -244,6 +258,10 @@
         <button class="filter-btn" data-filter="pos"  onclick="setFilter('pos',  this)">📈 Ganancia</button>
         <button class="filter-btn" data-filter="neg"  onclick="setFilter('neg',  this)">📉 Pérdida</button>
       </div>
+      <div class="col-picker" id="col-picker" style="margin-left:auto">
+        <button class="col-picker-btn" onclick="toggleColPicker(event)">⚙ Columnas</button>
+        <div class="col-picker-menu" id="col-picker-menu"></div>
+      </div>
     </div>
     <div class="table-wrap">
       <table id="portfolio-table">
@@ -256,6 +274,8 @@
             <th>P. Anterior</th>
             <th class="sortable" data-col="livePrice" onclick="sortTable('livePrice')">🔴 Precio Live <span class="sort-icon"></span></th>
             <th class="sortable" data-col="chgPct"    onclick="sortTable('chgPct')">   Var. día     <span class="sort-icon"></span></th>
+            <th class="sortable" data-col="target"    onclick="sortTable('target')">   🎯 P. Objetivo <span class="sort-icon"></span></th>
+            <th class="sortable" data-col="upside"    onclick="sortTable('upside')">   Upside     <span class="sort-icon"></span></th>
             <th class="sortable" data-col="value"     onclick="sortTable('value')">    Valor     <span class="sort-icon"></span></th>
             <th class="sortable" data-col="pct"       onclick="sortTable('pct')">      % Portafolio <span class="sort-icon"></span></th>
             <th class="sortable" data-col="ret"       onclick="sortTable('ret')">      Retorno   <span class="sort-icon"></span></th>
@@ -285,8 +305,11 @@
         <table>
           <thead>
             <tr>
-              <th class="sortable" data-rcol="ticker"  onclick="sortRecs('ticker')">  Ticker <span class="sort-icon"></span></th>
-              <th class="sortable" data-rcol="upside"  onclick="sortRecs('upside')">  Upside <span class="sort-icon"></span></th>
+              <th class="sortable" data-rcol="ticker"        onclick="sortRecs('ticker')">       Ticker <span class="sort-icon"></span></th>
+              <th class="sortable" data-rcol="currentPrice"  onclick="sortRecs('currentPrice')"> P. Actual <span class="sort-icon"></span></th>
+              <th class="sortable" data-rcol="target"        onclick="sortRecs('target')">       🎯 P. Objetivo <span class="sort-icon"></span></th>
+              <th class="sortable" data-rcol="upside"        onclick="sortRecs('upside')">       Upside <span class="sort-icon"></span></th>
+              <th>Analistas</th>
               <th>Señal</th>
             </tr>
           </thead>
@@ -337,76 +360,79 @@
 // ── DATA ──────────────────────────────────────────────────────────────────────
 
 const portfolio = [
-  { ticker:"ASTS",     name:"AST SpaceMobile",            shares:87.44,     buyPrice:22.18,    price:105.86, value:9256.85,  pct:22.2, ret:376.6,  alert:true  },
-  { ticker:"GOOGL",    name:"Alphabet Inc",                shares:24.10,     buyPrice:154.56,   price:382.97, value:9231.04, pct:22.2, ret:134.5,  alert:true  },
-  { ticker:"ASST",     name:"Strive Inc",                  shares:495.01,    buyPrice:14.49,    price:18.21,  value:9014.20, pct:21.7, ret:25.3,   alert:true  },
-  { ticker:"LDI",      name:"loanDepot Inc",               shares:4395.27,   buyPrice:1.21,     price:1.25,   value:5494.09, pct:13.2, ret:2.6,    alert:false },
-  { ticker:"NVO",      name:"Novo Nordisk",                shares:29.27,     buyPrice:60.47,    price:43.80,  value:1282.06, pct:3.1,  ret:-27.1,  alert:false },
-  { ticker:"NIO",      name:"NIO Inc ADR",                 shares:207.28,    buyPrice:4.82,     price:5.20,   value:1077.84, pct:2.6,  ret:7.6,    alert:false },
-  { ticker:"MSTR",     name:"Strategy Inc",                shares:6.66,      buyPrice:146.78,   price:159.89, value:1064.72, pct:2.6,  ret:8.6,    alert:false },
-  { ticker:"MELI",     name:"MercadoLibre",                shares:0.548,     buyPrice:1825.49,  price:1664.42,value:911.77,  pct:2.2,  ret:-8.8,   alert:false },
-  { ticker:"IIPR",     name:"Innovative Industrial",       shares:10.815,    buyPrice:45.62,    price:57.06,  value:617.10,  pct:1.5,  ret:24.7,   alert:false },
-  { ticker:"PEP",      name:"PepsiCo Inc",                 shares:4.047,     buyPrice:157.85,   price:150.57, value:609.37,  pct:1.5,  ret:3.5,    alert:false },
-  { ticker:"FLWS",     name:"1-800-Flowers.com",           shares:136.99,    buyPrice:3.65,     price:4.34,   value:594.52,  pct:1.4,  ret:18.7,   alert:false },
-  { ticker:"CRM",      name:"Salesforce Inc",              shares:2.6946,    buyPrice:185.00,   price:180.07, value:485.22,  pct:1.2,  ret:-2.9,   alert:false },
-  { ticker:"TROW",     name:"T. Rowe Price Group",         shares:4.4749,    buyPrice:89.12,    price:103.39, value:462.66,  pct:1.1,  ret:15.7,   alert:false },
-  { ticker:"MSFT",     name:"Microsoft Corp",              shares:0.8302,    buyPrice:360.27,   price:418.57, value:347.50,  pct:0.8,  ret:15.8,   alert:false },
-  { ticker:"ADBE",     name:"Adobe Inc",                   shares:1.4166,    buyPrice:352.93,   price:244.76, value:346.73,  pct:0.8,  ret:-30.9,  alert:false },
-  { ticker:"AMZN",     name:"Amazon.com",                  shares:0.8902,    buyPrice:207.38,   price:266.32, value:237.07,  pct:0.6,  ret:35.6,   alert:false },
-  { ticker:"ASST-VRS", name:"Strive Variable Rate Sec.",   shares:2,         buyPrice:95.20,    price:100.01, value:200.02,  pct:0.5,  ret:4.7,    alert:false },
-  { ticker:"MSTR-VRS", name:"Strategy Variable Rate Sec.", shares:2,         buyPrice:98.95,    price:99.30,  value:198.60,  pct:0.5,  ret:0.1,    alert:false },
-  { ticker:"NKE",      name:"Nike Inc",                    shares:3.867,     buyPrice:51.56,    price:44.67,  value:172.74,  pct:0.4,  ret:-13.6,  alert:false },
+  { ticker:"ASTS", name:"AST SpaceMobile", shares:87.44, buyPrice:22.18, price:105.86, value:9256.85, pct:22.2, ret:376.6, alert:true },
+  { ticker:"GOOGL", name:"Alphabet Inc", shares:24.1, buyPrice:154.56, price:382.97, value:9231.04, pct:22.2, ret:134.5, alert:true },
+  { ticker:"ASST", name:"Strive Inc", shares:495.01, buyPrice:14.49, price:18.21, value:9014.2, pct:21.7, ret:25.3, alert:true },
+  { ticker:"LDI", name:"loanDepot Inc", shares:4395.27, buyPrice:1.21, price:1.25, value:5494.09, pct:13.2, ret:2.6, alert:false },
+  { ticker:"NVO", name:"Novo Nordisk", shares:29.27, buyPrice:60.47, price:43.8, value:1282.06, pct:3.1, ret:-27.1, alert:false },
+  { ticker:"NIO", name:"NIO Inc ADR", shares:207.28, buyPrice:4.82, price:5.2, value:1077.84, pct:2.6, ret:7.6, alert:false },
+  { ticker:"MSTR", name:"Strategy Inc", shares:6.66, buyPrice:146.78, price:159.89, value:1064.72, pct:2.6, ret:8.6, alert:false },
+  { ticker:"MELI", name:"MercadoLibre", shares:0.548, buyPrice:1825.49, price:1664.42, value:911.77, pct:2.2, ret:-8.8, alert:false },
+  { ticker:"IIPR", name:"Innovative Industrial Prop.", shares:10.815, buyPrice:45.62, price:57.06, value:617.1, pct:1.5, ret:24.7, alert:false },
+  { ticker:"PEP", name:"PepsiCo Inc", shares:4.047, buyPrice:157.85, price:150.57, value:609.37, pct:1.5, ret:3.5, alert:false },
+  { ticker:"FLWS", name:"1-800-Flowers.com", shares:136.99, buyPrice:3.65, price:4.34, value:594.52, pct:1.4, ret:18.7, alert:false },
+  { ticker:"CRM", name:"Salesforce Inc", shares:2.6946, buyPrice:185.0, price:180.07, value:485.22, pct:1.2, ret:-2.9, alert:false },
+  { ticker:"TROW", name:"T. Rowe Price Group", shares:4.4749, buyPrice:89.12, price:103.39, value:462.66, pct:1.1, ret:15.7, alert:false },
+  { ticker:"MSFT", name:"Microsoft Corp", shares:0.8302, buyPrice:360.27, price:418.57, value:347.5, pct:0.8, ret:15.8, alert:false },
+  { ticker:"ADBE", name:"Adobe Inc", shares:1.4166, buyPrice:352.93, price:244.76, value:346.73, pct:0.8, ret:-30.9, alert:false },
+  { ticker:"AMZN", name:"Amazon.com", shares:0.8902, buyPrice:207.38, price:266.32, value:237.07, pct:0.6, ret:35.6, alert:false },
+  { ticker:"ASST-VRS", name:"Strive Variable Rate Security", shares:2.0, buyPrice:95.2, price:100.01, value:200.02, pct:0.5, ret:4.7, alert:false },
+  { ticker:"MSTR-VRS", name:"Strategy Variable Rate Security", shares:2.0, buyPrice:98.95, price:99.3, value:198.6, pct:0.5, ret:0.1, alert:false },
+  { ticker:"NKE", name:"Nike Inc", shares:3.867, buyPrice:51.56, price:44.67, value:172.74, pct:0.4, ret:-13.6, alert:false },
 ];
 
 const recommendations = [
-  { ticker:"ASST",  upside:59.3,  signal:"buy",
-    fundamento:"Upside de 59% sobre precio objetivo. TD Cowen y H.C. Wainwright subieron sus targets a $30 y $38 respectivamente con rating Buy activo. Empresa de gestión de activos en expansión.",
-    riesgo:"Cobertura analista aún limitada (4 analistas); volatilidad alta por ser una empresa reciente." },
-  { ticker:"NVO",   upside:45.8,  signal:"buy",
-    fundamento:"Upside de 45.8% con consensus Buy. Fabricante de Ozempic/Wegovy con posición dominante en GLP-1. Caída reciente crea punto de entrada atractivo respecto al target.",
-    riesgo:"Presión de precios sobre GLP-1 por parte del gobierno y competencia creciente (Eli Lilly)." },
-  { ticker:"NKE",   upside:47.3,  signal:"buy",
-    fundamento:"Upside del 47% con consenso Buy (38 analistas). El stock cotiza en mínimos históricos recientes. Nueva dirección ejecutiva implementando plan de recuperación de márgenes y canales directos.",
-    riesgo:"Ejecución del turnaround; competencia de On Running y Hoka en segmento premium." },
-  { ticker:"MSTR",  upside:79.6,  signal:"buy",
-    fundamento:"Upside de casi 80% con consenso Strong Buy unánime (14 Buy, 1 Hold, 0 Sell). Compañía acumuladora de Bitcoin con alta correlación al ciclo cripto en expansión.",
-    riesgo:"Correlación total con Bitcoin; una corrección cripto impacta directamente el NAV." },
-  { ticker:"MELI",  upside:34.1,  signal:"buy",
-    fundamento:"Upside del 34% post-caída del 13% tras earnings de Q1 2026. Ingresos crecieron 49% YoY a $8.85B. La caída fue por reinversión agresiva en logística, no por deterioro del negocio.",
-    riesgo:"Presión de márgenes por expansión en Brasil; riesgo cambiario en Latam." },
-  { ticker:"ADBE",  upside:33.7,  signal:"buy",
-    fundamento:"Upside del 33.7% con amplia cobertura (39 analistas). Stock cayó 40% en el último año, generando punto de entrada atractivo. Revenue de IA triplicándose; 16 de 39 analistas en Buy/Strong Buy.",
-    riesgo:"Competencia de herramientas de IA generativa gratuitas que erosionen su base de suscriptores." },
-  { ticker:"MSFT",  upside:33.9,  signal:"buy",
-    fundamento:"Upside del 33.9% con consensus Strong Buy de 55 analistas. Crecimiento del backlog de IA casi al 100% YoY. Azure y Copilot como principales motores de crecimiento para 2026–2027.",
-    riesgo:"Retorno sobre capex en IA aún incierto; posibles ajustes de target si los márgenes decepcionan." },
-  { ticker:"AMZN",  upside:21.6,  signal:"hold",
-    fundamento:"Upside del 21.6%, por debajo del umbral del 30%. Consensus Strong Buy con 62 analistas Buy. AWS y publicidad siguen siendo motores sólidos, pero el precio actual ya descuenta gran parte del crecimiento esperado.",
-    riesgo:"Desaceleración de AWS ante competencia de Azure y Google Cloud." },
-  { ticker:"GOOGL", upside:6.9,   signal:"hold",
-    fundamento:"Consensus Strong Buy pero upside solo 6.9% desde niveles actuales. El precio ya refleja en gran parte las expectativas de crecimiento en IA y publicidad digital.",
-    riesgo:"Presión regulatoria antimonopolio en EE.UU. y Europa." },
-  { ticker:"NIO",   upside:10.9,  signal:"hold",
-    fundamento:"Upside moderado de 10.9%. Mayoría analistas Buy pero el target no justifica acción agresiva. Empresa de EVs china con mercado doméstico competitivo.",
-    riesgo:"Tensiones geopolíticas EE.UU.-China y riesgo de delisting de ADRs." },
-  { ticker:"PEP",   upside:6.9,   signal:"hold",
-    fundamento:"Upside bajo del 6.9%. Empresa defensiva de consumo masivo con dividendo sólido, pero sin catalizador de crecimiento a corto plazo. Consenso mixto: 6 Buy, 15 Hold, 2 Sell.",
-    riesgo:"Presión en volúmenes por cambios de hábito del consumidor y competencia de marcas blancas." },
-  { ticker:"IIPR",  upside:9.7,   signal:"hold",
-    fundamento:"Upside del 9.7%. REIT del sector cannabis con dividendo alto pero consenso neutro (Hold). Sector cannabis sigue bajo presión regulatoria en EE.UU.",
-    riesgo:"Riesgo de impago de arrendatarios del sector cannabis; estancamiento de legalización federal." },
-  { ticker:"TROW",  upside:3.7,   signal:"hold",
-    fundamento:"Upside mínimo del 3.7%. Consenso negativo: 12 analistas con rating Sell y promedio target de $99.17, lo que implica downside. Gestora de fondos activos bajo presión estructural frente a ETFs pasivos.",
-    riesgo:"Salida de flujos hacia vehículos pasivos; contracción de márgenes en gestión activa." },
-  { ticker:"FLWS",  upside:37.5,  signal:"warn",
-    fundamento:"Upside matemático >30% pero con cobertura de solo 1 analista y fundamentales deteriorados: revenue esperado caer 10–12% en 2026 y pérdida por acción se duplica. La tesis no está soportada.",
-    riesgo:"Continuo deterioro operativo; pérdidas crecientes en 2026." },
-  { ticker:"LDI",   upside:38.5,  signal:"warn",
-    fundamento:"Aunque el upside matemático supera el 30%, el consenso de analistas es neutro-negativo (0 Buy, 4 Hold, 2 Sell). Sector hipotecario bajo presión con tasas Fed elevadas.",
-    riesgo:"Datos de precio muy dispersos entre fuentes; confirmar precio actual antes de operar." },
-  { ticker:"ASTS",  upside:-17.5, signal:"sell",
-    fundamento:"El precio actual supera el precio objetivo de consenso en 17.5%. El stock subió +10% en las últimas 24h, alejándose aún más del target. Consenso Hold con upside negativo a estos niveles.",
-    riesgo:"Alta volatilidad; pérdidas proyectadas para 2026 con revenue guidance de $150M–$200M." },
+  { ticker:"ASTS", upside:-21.2, signal:"sell", target:83.47, currentPrice:105.86, analysts:9,
+    fundamento:"Upside de -21.2% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"TROW", upside:-5.8, signal:"sell", target:97.42, currentPrice:103.39, analysts:12,
+    fundamento:"Upside de -5.8% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"MSTR", upside:138.2, signal:"buy", target:380.79, currentPrice:159.89, analysts:14,
+    fundamento:"Upside de 138.2% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"ASST", upside:59.3, signal:"buy", target:29.00, currentPrice:18.21, analysts:4,
+    fundamento:"Upside de 59.3% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"CRM", upside:45.7, signal:"buy", target:262.27, currentPrice:180.07, analysts:53,
+    fundamento:"Upside de 45.7% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"LDI", upside:44.0, signal:"buy", target:1.80, currentPrice:1.25, analysts:2,
+    fundamento:"Upside de 44.0% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"NKE", upside:36.1, signal:"buy", target:60.78, currentPrice:44.67, analysts:33,
+    fundamento:"Upside de 36.1% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"MELI", upside:34.0, signal:"buy", target:2230.28, currentPrice:1664.42, analysts:25,
+    fundamento:"Upside de 34.0% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"MSFT", upside:33.9, signal:"buy", target:560.63, currentPrice:418.57, analysts:54,
+    fundamento:"Upside de 33.9% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"ADBE", upside:33.7, signal:"buy", target:327.28, currentPrice:244.76, analysts:34,
+    fundamento:"Upside de 33.7% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"NIO", upside:33.2, signal:"buy", target:6.93, currentPrice:5.20, analysts:24,
+    fundamento:"Upside de 33.2% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"FLWS", upside:26.7, signal:"hold", target:5.50, currentPrice:4.34, analysts:2,
+    fundamento:"Upside de 26.7% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"AMZN", upside:17.4, signal:"hold", target:312.63, currentPrice:266.32, analysts:62,
+    fundamento:"Upside de 17.4% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"PEP", upside:13.6, signal:"hold", target:171.05, currentPrice:150.57, analysts:21,
+    fundamento:"Upside de 13.6% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"GOOGL", upside:12.0, signal:"hold", target:429.12, currentPrice:382.97, analysts:53,
+    fundamento:"Upside de 12.0% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"IIPR", upside:9.4, signal:"hold", target:62.40, currentPrice:57.06, analysts:4,
+    fundamento:"Upside de 9.4% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"NVO", upside:4.1, signal:"hold", target:46.82, currentPrice:44.96, analysts:12,
+    fundamento:"Upside de 4.1% respecto al precio objetivo de consenso de analistas.",
+    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
 ];
 
 const transactions = [
@@ -535,7 +561,10 @@ function showDetail(ticker) {
   const sign = r.upside >= 0 ? '+' : '';
   document.getElementById('modal-ticker').textContent = ticker;
   document.getElementById('modal-badge').innerHTML = `<span class="badge ${badgeClass[r.signal]}">${labels[r.signal]}</span>`;
-  document.getElementById('modal-upside').textContent = `Upside: ${sign}${r.upside}%`;
+  const priceInfo = (typeof r.currentPrice === 'number' && typeof r.target === 'number')
+    ? `$${fmt(r.currentPrice)} → 🎯 $${fmt(r.target)}  ·  Upside: ${sign}${r.upside}%${r.analysts ? '  ·  ' + r.analysts + ' analistas' : ''}`
+    : `Upside: ${sign}${r.upside}%`;
+  document.getElementById('modal-upside').textContent = priceInfo;
   document.getElementById('modal-fundamento').textContent = r.fundamento || '—';
   document.getElementById('modal-riesgo').textContent = r.riesgo || '—';
   document.getElementById('detail-modal').classList.add('open');
@@ -583,6 +612,79 @@ let sortDir = 1; // 1 = asc, -1 = desc
 const recMap = {};
 recommendations.forEach(r => recMap[r.ticker] = r);
 
+// ── COLUMN VISIBILITY ─────────────────────────────────────────────────────────
+// Columnas configurables. El índice se corresponde con el orden en <thead> de la tabla de posiciones.
+const COLUMNS = [
+  { idx: 0,  key: 'ticker',    label: 'Ticker',       locked: true  },
+  { idx: 1,  key: 'name',      label: 'Empresa',      locked: false },
+  { idx: 2,  key: 'shares',    label: 'Acciones',     locked: false },
+  { idx: 3,  key: 'buyPrice',  label: 'P. Compra',    locked: false },
+  { idx: 4,  key: 'prevPrice', label: 'P. Anterior',  locked: false },
+  { idx: 5,  key: 'livePrice', label: 'Precio Live',  locked: false },
+  { idx: 6,  key: 'chgPct',    label: 'Var. día',     locked: false },
+  { idx: 7,  key: 'target',    label: 'P. Objetivo',  locked: false },
+  { idx: 8,  key: 'upside',    label: 'Upside',       locked: false },
+  { idx: 9,  key: 'value',     label: 'Valor',        locked: false },
+  { idx: 10, key: 'pct',       label: '% Portafolio', locked: false },
+  { idx: 11, key: 'ret',       label: 'Retorno',      locked: false },
+  { idx: 12, key: 'rec',       label: 'Recomendación',locked: false },
+];
+const COL_STORAGE_KEY = 'portfolio_hidden_cols';
+let hiddenCols = new Set(JSON.parse(localStorage.getItem(COL_STORAGE_KEY) || '[]'));
+
+function applyColumnVisibility() {
+  const table = document.getElementById('portfolio-table');
+  if (!table) return;
+  COLUMNS.forEach(c => {
+    const hide = hiddenCols.has(c.key) && !c.locked;
+    const ths  = table.querySelectorAll(`thead th:nth-child(${c.idx + 1})`);
+    const tds  = table.querySelectorAll(`tbody td:nth-child(${c.idx + 1})`);
+    ths.forEach(el => el.style.display = hide ? 'none' : '');
+    tds.forEach(el => el.style.display = hide ? 'none' : '');
+  });
+}
+
+function buildColPickerMenu() {
+  const menu = document.getElementById('col-picker-menu');
+  if (!menu) return;
+  menu.innerHTML = COLUMNS.map(c => {
+    const checked  = hiddenCols.has(c.key) ? '' : 'checked';
+    const disabled = c.locked ? 'disabled' : '';
+    return `<label class="col-picker-item">
+      <input type="checkbox" ${checked} ${disabled} onchange="toggleColumn('${c.key}', this.checked)" />
+      <span>${c.label}${c.locked ? ' <span style="color:var(--muted);font-size:10px">(fija)</span>' : ''}</span>
+    </label>`;
+  }).join('')
+    + `<div class="col-picker-divider"></div>
+       <div class="col-picker-footer">
+         <a onclick="showAllColumns()">Mostrar todas</a>
+       </div>`;
+}
+
+function toggleColPicker(e) {
+  e.stopPropagation();
+  document.getElementById('col-picker').classList.toggle('open');
+}
+
+function toggleColumn(key, visible) {
+  if (visible) hiddenCols.delete(key); else hiddenCols.add(key);
+  localStorage.setItem(COL_STORAGE_KEY, JSON.stringify([...hiddenCols]));
+  applyColumnVisibility();
+}
+
+function showAllColumns() {
+  hiddenCols.clear();
+  localStorage.setItem(COL_STORAGE_KEY, '[]');
+  buildColPickerMenu();
+  applyColumnVisibility();
+}
+
+// Cerrar el dropdown al clickear afuera
+document.addEventListener('click', e => {
+  const picker = document.getElementById('col-picker');
+  if (picker && !picker.contains(e.target)) picker.classList.remove('open');
+});
+
 function setFilter(filter, btn) {
   currentFilter = filter;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -625,6 +727,9 @@ function renderTable() {
       } else if (sortCol === 'chgPct') {
         va = liveCache[a.ticker]?.dp ?? -Infinity;
         vb = liveCache[b.ticker]?.dp ?? -Infinity;
+      } else if (sortCol === 'target' || sortCol === 'upside') {
+        va = recMap[a.ticker]?.[sortCol] ?? -Infinity;
+        vb = recMap[b.ticker]?.[sortCol] ?? -Infinity;
       } else {
         va = a[sortCol]; vb = b[sortCol];
         if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
@@ -634,7 +739,7 @@ function renderTable() {
   }
 
   if (visible.length === 0) {
-    pb.innerHTML = '<tr><td colspan="11" class="no-results">Sin resultados para el filtro seleccionado.</td></tr>';
+    pb.innerHTML = '<tr><td colspan="13" class="no-results">Sin resultados para el filtro seleccionado.</td></tr>';
     return;
   }
 
@@ -644,11 +749,19 @@ function renderTable() {
     const retSign  = p.ret >= 0 ? '+' : '';
     const rec = recMap[p.ticker];
     let badge = '';
+    let targetCell = '<td style="color:var(--muted)">—</td>';
+    let upsideCell = '<td style="color:var(--muted)">—</td>';
     if (rec) {
       if (rec.signal === 'buy')  badge = `<span class="badge badge-buy"  data-detail onclick="showDetail('${rec.ticker}')">COMPRAR +</span>`;
       if (rec.signal === 'hold') badge = `<span class="badge badge-hold" data-detail onclick="showDetail('${rec.ticker}')">MANTENER</span>`;
       if (rec.signal === 'sell') badge = `<span class="badge badge-sell" data-detail onclick="showDetail('${rec.ticker}')">VENDER</span>`;
       if (rec.signal === 'warn') badge = `<span class="badge badge-warn" data-detail onclick="showDetail('${rec.ticker}')">REVISAR</span>`;
+      if (rec.target) targetCell = `<td><strong>$${fmt(rec.target)}</strong></td>`;
+      if (typeof rec.upside === 'number') {
+        const upColor = rec.upside >= 0 ? 'green' : 'red';
+        const upSign  = rec.upside >= 0 ? '+' : '';
+        upsideCell = `<td class="${upColor}">${upSign}${rec.upside}%</td>`;
+      }
     }
     pb.innerHTML += `
       <tr id="row-${p.ticker}">
@@ -659,6 +772,8 @@ function renderTable() {
         <td style="color:var(--muted)">$${fmt(p.price)}</td>
         <td id="live-${p.ticker}"><span class="spinner"></span></td>
         <td id="chg-${p.ticker}"><span class="spinner"></span></td>
+        ${targetCell}
+        ${upsideCell}
         <td><strong>$${fmt(p.value, 0)}</strong></td>
         <td>${(p.value / totalWithCash * 100).toFixed(1)}%</td>
         <td class="${retColor}">${retSign}${p.ret}%</td>
@@ -670,9 +785,12 @@ function renderTable() {
   visible.forEach(p => {
     if (p.ticker in liveCache) applyLiveCell(p.ticker, liveCache[p.ticker]);
   });
+
+  applyColumnVisibility();
 }
 
 // Portfolio table — render initial state
+buildColPickerMenu();
 renderTable();
 
 // ── RECOMMENDATIONS FILTER & SORT ─────────────────────────────────────────────
@@ -717,7 +835,7 @@ function renderRecs() {
   }
 
   if (visible.length === 0) {
-    rb.innerHTML = '<tr><td colspan="3" class="no-results">Sin resultados.</td></tr>';
+    rb.innerHTML = '<tr><td colspan="6" class="no-results">Sin resultados.</td></tr>';
     return;
   }
 
@@ -726,14 +844,20 @@ function renderRecs() {
     const upColor = r.upside >= 0 ? 'green' : 'red';
     const upSign  = r.upside >= 0 ? '+' : '';
     let badge = '';
-    if (r.signal === 'buy')  badge = '<span class="badge badge-buy">COMPRAR +</span>';
-    if (r.signal === 'hold') badge = '<span class="badge badge-hold">MANTENER</span>';
-    if (r.signal === 'sell') badge = '<span class="badge badge-sell">VENDER</span>';
-    if (r.signal === 'warn') badge = '<span class="badge badge-warn">REVISAR</span>';
+    if (r.signal === 'buy')  badge = `<span class="badge badge-buy"  data-detail onclick="showDetail('${r.ticker}')">COMPRAR +</span>`;
+    if (r.signal === 'hold') badge = `<span class="badge badge-hold" data-detail onclick="showDetail('${r.ticker}')">MANTENER</span>`;
+    if (r.signal === 'sell') badge = `<span class="badge badge-sell" data-detail onclick="showDetail('${r.ticker}')">VENDER</span>`;
+    if (r.signal === 'warn') badge = `<span class="badge badge-warn" data-detail onclick="showDetail('${r.ticker}')">REVISAR</span>`;
+    const curr   = (typeof r.currentPrice === 'number') ? `$${fmt(r.currentPrice)}` : '—';
+    const target = (typeof r.target === 'number')       ? `$${fmt(r.target)}`        : '—';
+    const analy  = (typeof r.analysts === 'number' && r.analysts > 0) ? r.analysts : '—';
     rb.innerHTML += `
       <tr>
         <td><strong>${r.ticker}</strong></td>
+        <td style="color:var(--muted)">${curr}</td>
+        <td><strong>${target}</strong></td>
         <td class="${upColor}">${upSign}${r.upside}%</td>
+        <td style="color:var(--muted)">${analy}</td>
         <td>${badge}</td>
       </tr>`;
   });
