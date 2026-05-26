@@ -182,8 +182,8 @@
   <div class="cards">
     <div class="card">
       <div class="label">Valor total</div>
-      <div class="value">$41,604</div>
-      <div class="sub">19 posiciones activas</div>
+      <div class="value">$44,401</div>
+      <div class="sub">19 posiciones + efectivo</div>
     </div>
     <div class="card">
       <div class="label">Retorno total</div>
@@ -209,9 +209,9 @@
 
   <!-- ALERTS -->
   <div class="alerts">
-    <div class="alert">⚠️ <span>ASTS</span> — 22.2% del portafolio (umbral: 20%)</div>
-    <div class="alert">⚠️ <span>GOOGL</span> — 22.2% del portafolio (umbral: 20%)</div>
-    <div class="alert">⚠️ <span>ASST</span> — 21.7% del portafolio (umbral: 20%)</div>
+    <div class="alert">⚠️ <span>ASTS</span> — 20.9% del portafolio total (umbral: 20%)</div>
+    <div class="alert">⚠️ <span>GOOGL</span> — 20.8% del portafolio total (umbral: 20%)</div>
+    <div class="alert">⚠️ <span>ASST</span> — 20.3% del portafolio total (umbral: 20%)</div>
   </div>
 
   <!-- CHARTS -->
@@ -426,6 +426,10 @@ const transactions = [
   { date:"2026-03-31", asset:"PEP — PepsiCo",         type:"Dividendo",shares:"—",      price:"—",         amount:"$4.90"  },
   { date:"2026-03-30", asset:"TROW — T. Rowe Price",  type:"Compra",  shares:"4.47",    price:"$89.12",    amount:"$400"   },
 ];
+
+const CASH = 2797.67; // IBK $2,795.50 + Zesty $2.17
+const totalEquity = portfolio.reduce((s, p) => s + p.value, 0);
+const totalWithCash = totalEquity + CASH;
 
 // ── LIVE PRICES (Finnhub) ─────────────────────────────────────────────────────
 
@@ -656,7 +660,7 @@ function renderTable() {
         <td id="live-${p.ticker}"><span class="spinner"></span></td>
         <td id="chg-${p.ticker}"><span class="spinner"></span></td>
         <td><strong>$${fmt(p.value, 0)}</strong></td>
-        <td>${p.pct}%</td>
+        <td>${(p.value / totalWithCash * 100).toFixed(1)}%</td>
         <td class="${retColor}">${retSign}${p.ret}%</td>
         <td>${badge}</td>
       </tr>`;
@@ -765,14 +769,15 @@ const palette = [
   '#10b981','#fb923c','#a3e635','#38bdf8','#e879f9'
 ];
 
-// 1. Donut — distribución portafolio
-const donutLabels = portfolio.map(p => p.ticker);
-const donutData   = portfolio.map(p => p.value);
+// 1. Donut — distribución portafolio (incluye efectivo)
+const donutLabels = [...portfolio.map(p => p.ticker), 'CASH'];
+const donutData   = [...portfolio.map(p => p.value), CASH];
+const donutColors = [...palette.slice(0, portfolio.length), '#4ade80'];
 new Chart(document.getElementById('chartDonut'), {
   type: 'doughnut',
   data: {
     labels: donutLabels,
-    datasets: [{ data: donutData, backgroundColor: palette, borderWidth: 2, borderColor: '#1a1d27' }]
+    datasets: [{ data: donutData, backgroundColor: donutColors, borderWidth: 2, borderColor: '#1a1d27' }]
   },
   options: {
     responsive: true, maintainAspectRatio: false,
@@ -784,9 +789,8 @@ new Chart(document.getElementById('chartDonut'), {
           boxWidth: 12, padding: 10, font: { size: 11 },
           generateLabels: chart => {
             const ds = chart.data.datasets[0];
-            const total = ds.data.reduce((a, b) => a + b, 0);
             return chart.data.labels.map((label, i) => ({
-              text: `${label}  $${fmt(ds.data[i], 0)}  ${((ds.data[i] / total) * 100).toFixed(1)}%`,
+              text: `${label}  $${fmt(ds.data[i], 0)}  ${((ds.data[i] / totalWithCash) * 100).toFixed(1)}%`,
               fillStyle: ds.backgroundColor[i],
               strokeStyle: ds.backgroundColor[i],
               fontColor: '#e8eaf0',
@@ -801,8 +805,7 @@ new Chart(document.getElementById('chartDonut'), {
       tooltip: {
         callbacks: {
           label: ctx => {
-            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-            return ` ${ctx.label}: $${fmt(ctx.parsed, 0)} (${((ctx.parsed / total) * 100).toFixed(1)}%)`;
+            return ` ${ctx.label}: $${fmt(ctx.parsed, 0)} (${((ctx.parsed / totalWithCash) * 100).toFixed(1)}%)`;
           }
         }
       }
