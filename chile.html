@@ -116,9 +116,12 @@
 
 <div class="price-bar">
   <span style="color:var(--muted);white-space:nowrap">Precios BCS (CLP):</span>
-  <input id="price-input" placeholder="COLBUN:112 ILC:8500 INVERCAP:1800 NUAM:3800 BICECORP:290 LIPIGAS:2900 HABITAT:760 SQM-B:30000 CFINRENTAS:1380 EMBONOR-B:1300" />
-  <button onclick="applyPrices()">Actualizar</button>
-  <span class="status" id="price-status">Ingresá los precios actuales de la BCS · También podés editar cada celda directamente</span>
+  <button id="btn-live" onclick="fetchLivePricesCHL()">🔄 Actualizar precios live</button>
+  <span class="status" id="price-status">Fuente: Yahoo Finance · Sin API key requerida · También podés editar cada celda directamente</span>
+  <div style="display:flex;gap:8px;margin-left:auto;align-items:center">
+    <input id="price-input" placeholder="COLBUN:112 ILC:8500 ..." style="min-width:200px" />
+    <button onclick="applyPrices()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">Aplicar</button>
+  </div>
 </div>
 
 <div class="main">
@@ -416,6 +419,59 @@ function applyPrices() {
   updateAll();
 }
 
+// ── PRECIOS LIVE — Yahoo Finance vía proxy CORS ───────────────────────────────
+// Yahoo Finance soporta tickers .SN (Bolsa de Santiago) sin API key.
+// Se usa allorigins.win como proxy para evitar restricciones CORS del navegador.
+const YF_PROXY = 'https://api.allorigins.win/raw?url=';
+
+async function fetchLivePricesCHL() {
+  const btn      = document.getElementById('btn-live');
+  const statusEl = document.getElementById('price-status');
+  if (btn) btn.disabled = true;
+  statusEl.style.color   = 'var(--muted)';
+  statusEl.textContent   = '⟳ Conectando con Yahoo Finance...';
+
+  try {
+    // Construir lista de símbolos Yahoo (.SN = Bolsa de Santiago)
+    const symbols = portfolio.map(p => p.ticker + '.SN').join(',');
+    const yahooUrl = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent,previousClose`;
+    const res = await fetch(YF_PROXY + encodeURIComponent(yahooUrl),
+                            { signal: AbortSignal.timeout(12000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const json    = await res.json();
+    const results = json?.quoteResponse?.result;
+    if (!results?.length) throw new Error('Sin datos en la respuesta');
+
+    const saved = JSON.parse(localStorage.getItem(PRICE_KEY) || '{}');
+    let updated = 0;
+
+    results.forEach(q => {
+      // Yahoo devuelve "COLBUN.SN" → extraemos "COLBUN"
+      const tk = (q.symbol || '').replace(/\.SN$/i, '');
+      const p  = portfolio.find(x => x.ticker === tk);
+      if (!p || !q.regularMarketPrice) return;
+      p.price        = q.regularMarketPrice;
+      p.prevClose    = q.previousClose    || null;
+      p.dayChange    = q.regularMarketChange    || 0;
+      p.dayChangePct = q.regularMarketChangePercent || 0;
+      saved[p.ticker] = q.regularMarketPrice;
+      updated++;
+    });
+
+    localStorage.setItem(PRICE_KEY, JSON.stringify(saved));
+    const now = new Date().toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = `✓ ${updated}/${portfolio.length} precios live · ${now} · Yahoo Finance`;
+    updateAll();
+  } catch (err) {
+    statusEl.style.color = 'var(--yellow)';
+    statusEl.textContent = `⚠ Error: ${err.message} — ingresá los precios manualmente o reintentá`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 // ── UPDATE ALL ────────────────────────────────────────────────────────────────
 function updateAll() {
   // Recalcular valores derivados
@@ -618,6 +674,8 @@ function updateCharts(totalEquity) {
 // ── INIT ──────────────────────────────────────────────────────────────────────
 updateAll();
 buildCharts(portfolio.reduce((s, p) => s + p.value, 0));
+// Auto-fetch precios live al cargar la página
+fetchLivePricesCHL();
 </script>
 </body>
 </html>
