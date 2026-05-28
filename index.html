@@ -907,6 +907,23 @@ function renderTable() {
     if (p.ticker in liveCache) applyLiveCell(p.ticker, liveCache[p.ticker]);
   });
 
+  // Recalcular % portafolio con precios live (se pierde al re-renderizar)
+  if (Object.keys(liveCache).length > 0) {
+    let liveEquity = 0;
+    portfolio.forEach(p => {
+      const d = liveCache[p.ticker];
+      liveEquity += (d && d.c) ? p.shares * d.c : p.value;
+    });
+    const liveTotal = liveEquity + CASH;
+    visible.forEach(p => {
+      const d  = liveCache[p.ticker];
+      const px = d ? d.c : null;
+      const v  = px ? p.shares * px : p.value;
+      const el = document.getElementById(`pct-${p.ticker}`);
+      if (el) el.textContent = `${(v / liveTotal * 100).toFixed(1)}%`;
+    });
+  }
+
   applyColumnVisibility();
 }
 
