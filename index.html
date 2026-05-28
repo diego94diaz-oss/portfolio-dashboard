@@ -617,10 +617,10 @@ async function fetchLivePrices() {
   if (liveCount > 0)
     document.getElementById('total-value-sub').textContent = `${liveCount} precios live · ${portfolio.length} posiciones`;
 
-  // Actualizar último punto del gráfico de evolución con valor live
+  // Actualizar último punto del gráfico de evolución con valor live (equity + efectivo)
   if (typeof chartHistory !== 'undefined' && chartHistory && equity > 0) {
     const ds = chartHistory.data.datasets[0];
-    ds.data[ds.data.length - 1] = equity;
+    ds.data[ds.data.length - 1] = equity + CASH;
     chartHistory.update('none');
     const tag = document.getElementById('history-live-tag');
     if (tag) tag.innerHTML = `<span style="color:var(--green)">● LIVE</span> · ${liveCount} de ${portfolio.length} precios`;
@@ -1029,9 +1029,9 @@ const yearlyPerf = [
   },
   {
     year: '2026', tag: 'YTD · Ene–May',
-    startVal: 21056, endVal: 41604, deposits: 6041,
+    startVal: 21056, endVal: 44402, deposits: 6041,
     positions: 'NIO · MSTR · IIPR · CRM · MELI · LDI...',
-    note: 'Snapshot al 24-may-2026. ASTS +376%, GOOGL +135%.'
+    note: 'Equity $41,604 + efectivo $2,798. Snapshot 24-may-2026.'
   },
 ];
 
@@ -1075,7 +1075,7 @@ const portfolioHistory = [
   { label: 'Dic 2025',  value: 21056 },  // cierre 2025
   { label: 'Feb 2026',  value: 24500 },  // NIO, MSTR, Strive, IIPR
   { label: 'Mar 2026',  value: 28000 },  // TROW, MSFT, NKE + depósitos
-  { label: 'May 2026',  value: 41604 },  // ← se actualiza con precios live
+  { label: 'May 2026',  value: 44402 },  // equity $41,604 + efectivo $2,798 · se actualiza con precios live
 ];
 
 let chartHistory;
