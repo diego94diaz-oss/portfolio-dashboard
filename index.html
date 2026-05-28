@@ -164,10 +164,20 @@
     @media (max-width: 900px) { .yearly-grid { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 480px) { .yearly-grid { grid-template-columns: 1fr; } }
 
-    .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
     .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
     .chart-wrap { position: relative; height: 280px; }
     @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } .chart-wrap { height: 240px; } }
+
+    /* Heatmap mensual */
+    .heatmap-wrap { overflow-x: auto; }
+    .heatmap-table { border-collapse: separate; border-spacing: 3px; font-size: 12px; white-space: nowrap; }
+    .heatmap-table th { padding: 4px 10px; text-align: center; color: var(--muted); font-size: 11px; font-weight: 600; min-width: 46px; }
+    .heatmap-table th.year-h { text-align: left; min-width: 36px; }
+    .heatmap-table td { padding: 5px 8px; text-align: center; border-radius: 5px; font-weight: 700; font-size: 11px; min-width: 46px; }
+    .heatmap-table td.year-col { color: var(--muted); font-weight: 400; font-size: 11px; text-align: left; background: transparent !important; }
+    .heatmap-table td.hm-empty { background: transparent; }
+    .heatmap-live-cell { outline: 2px solid var(--green); outline-offset: -1px; }
 
     footer { text-align: center; padding: 24px; color: var(--muted); font-size: 11px; }
 
@@ -253,15 +263,20 @@
     <div class="chart-wrap" style="height:260px"><canvas id="chartHistory"></canvas></div>
   </div>
 
+  <!-- HEATMAP MENSUAL -->
+  <div class="chart-card" style="margin-bottom:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="section-title" style="margin:0">Rentabilidad mensual</div>
+      <span style="font-size:11px;color:var(--muted)">TTWROR · <span style="color:var(--green)" id="hm-live-tag">mes actual se actualiza live</span></span>
+    </div>
+    <div class="heatmap-wrap"><div id="heatmap-container"></div></div>
+  </div>
+
   <!-- CHARTS -->
   <div class="charts-row">
     <div class="chart-card">
       <div class="section-title">Distribución del portafolio</div>
       <div class="chart-wrap"><canvas id="chartDonut"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="section-title">Retorno por activo (%)</div>
-      <div class="chart-wrap"><canvas id="chartReturn"></canvas></div>
     </div>
     <div class="chart-card">
       <div class="section-title">Valor mercado vs Costo ($)</div>
@@ -1210,35 +1225,7 @@ let chartDonut = new Chart(document.getElementById('chartDonut'), {
   }
 });
 
-// 2. Barras horizontales — retorno % por activo
-const sortedByRet = [...portfolio].sort((a, b) => b.ret - a.ret);
-let chartReturn = new Chart(document.getElementById('chartReturn'), {
-  type: 'bar',
-  data: {
-    labels: sortedByRet.map(p => p.ticker),
-    datasets: [{
-      label: 'Retorno %',
-      data: sortedByRet.map(p => p.ret),
-      backgroundColor: sortedByRet.map(p => p.ret >= 0 ? '#22c55e99' : '#ef444499'),
-      borderColor:     sortedByRet.map(p => p.ret >= 0 ? '#22c55e' : '#ef4444'),
-      borderWidth: 1,
-      borderRadius: 4
-    }]
-  },
-  options: {
-    indexAxis: 'y',
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false },
-      tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x > 0 ? '+' : ''}${ctx.parsed.x}%` } }
-    },
-    scales: {
-      x: { grid: { color: '#2e3248' }, ticks: { callback: v => v + '%' } },
-      y: { grid: { display: false }, ticks: { font: { size: 11 } } }
-    }
-  }
-});
-
-// 3. Barras agrupadas — valor mercado vs costo
+// 2. Barras agrupadas — valor mercado vs costo
 const top10 = [...portfolio].sort((a, b) => b.value - a.value).slice(0, 10);
 let chartCost = new Chart(document.getElementById('chartCost'), {
   type: 'bar',
@@ -1273,6 +1260,69 @@ let chartCost = new Chart(document.getElementById('chartCost'), {
     }
   }
 });
+
+// ── MAPA DE CALOR MENSUAL ─────────────────────────────────────────────────────
+// Rentabilidad mensual TTWROR por año. null = mes sin datos / futuro.
+// Fuente: plataforma externa. El mes actual (mayo 2026) se actualiza con precios live.
+const HEATMAP_CURRENT_YEAR  = 2026;
+const HEATMAP_CURRENT_MONTH = 4;   // índice 0-based: 4 = mayo
+const MONTH_START_VALUE     = 37629; // valor portafolio inicio de mayo 2026 (equity+cash)
+
+const monthlyReturns = {
+  //          E      F      M      A      M      J      J      A      S      O      N      D
+  2023: [  null,  null,  null,  null,  null,  null,   4.0,  -5.9,  -3.1,   0.7,  13.6,  -2.6 ],
+  2024: [   6.4,  16.2,   9.7,  -5.9,  13.0,  11.7,   5.7,   0.1,   4.1,   0.1,  -1.8,   0.8 ],
+  2025: [   1.8,  -1.2,   6.4,   0.8,   6.0,  18.6,   2.7,   6.3,   9.1,  16.7,  -1.7,  -1.8 ],
+  2026: [   7.9,  -7.1,  -0.6,  22.1,  18.0,  null,  null,  null,  null,  null,  null,  null ],
+};
+
+const MONTH_LABELS = ['E','F','M','A','M','J','J','A','S','O','N','D'];
+
+function heatColor(val) {
+  if (val === null) return null;
+  if (val >=  20) return { bg:'#14532d', text:'#fff' };
+  if (val >=  12) return { bg:'#166534', text:'#fff' };
+  if (val >=   6) return { bg:'#16a34a', text:'#fff' };
+  if (val >=   2) return { bg:'#4ade80', text:'#000' };
+  if (val >    0) return { bg:'#bbf7d0', text:'#000' };
+  if (val >   -2) return { bg:'#fecaca', text:'#000' };
+  if (val >   -6) return { bg:'#f87171', text:'#fff' };
+  if (val >  -12) return { bg:'#dc2626', text:'#fff' };
+  return              { bg:'#7f1d1d', text:'#fff' };
+}
+
+function renderHeatmap(overrideVal) {
+  const container = document.getElementById('heatmap-container');
+  if (!container) return;
+  const years = Object.keys(monthlyReturns).map(Number).sort();
+
+  let html = '<table class="heatmap-table"><thead><tr>';
+  html += '<th class="year-h"></th>';
+  MONTH_LABELS.forEach(m => { html += `<th>${m}</th>`; });
+  html += '</tr></thead><tbody>';
+
+  years.forEach(year => {
+    html += `<tr><td class="year-col">${String(year).slice(2)}</td>`;
+    monthlyReturns[year].forEach((val, mi) => {
+      const isLive = (year === HEATMAP_CURRENT_YEAR && mi === HEATMAP_CURRENT_MONTH);
+      const displayVal = (isLive && overrideVal !== undefined) ? overrideVal : val;
+      const c = heatColor(displayVal);
+      if (displayVal === null) {
+        html += `<td class="hm-empty"></td>`;
+      } else {
+        const label = (displayVal >= 0 ? '+' : '') + displayVal.toFixed(1) + '%';
+        const liveClass = isLive ? ' heatmap-live-cell' : '';
+        html += `<td class="${liveClass}" style="background:${c.bg};color:${c.text}" title="${MONTH_LABELS[mi]} ${year}">${label}</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+renderHeatmap();
 
 // ── ACTUALIZACIÓN LIVE GLOBAL ─────────────────────────────────────────────────
 // Actualiza alertas, gráficos y ⚠️ en filas con los valores live del portafolio.
@@ -1329,19 +1379,11 @@ function updateAllLive(liveTotal) {
     chartDonut.update('none');
   }
 
-  // 4. Retorno % — recalcular con precio live vs precio de compra
-  if (chartReturn) {
-    const liveRets = portfolio.map(p => {
-      const d  = liveCache[p.ticker];
-      const px = d ? d.c : p.price;
-      return { ticker: p.ticker, ret: (px - p.buyPrice) / p.buyPrice * 100 };
-    }).sort((a, b) => b.ret - a.ret);
-    chartReturn.data.labels                           = liveRets.map(x => x.ticker);
-    chartReturn.data.datasets[0].data                = liveRets.map(x => parseFloat(x.ret.toFixed(1)));
-    chartReturn.data.datasets[0].backgroundColor     = liveRets.map(x => x.ret >= 0 ? '#22c55e99' : '#ef444499');
-    chartReturn.data.datasets[0].borderColor         = liveRets.map(x => x.ret >= 0 ? '#22c55e' : '#ef4444');
-    chartReturn.update('none');
-  }
+  // 4. Heatmap — actualizar mes actual con retorno live
+  const liveMayRet = parseFloat(((liveTotal / MONTH_START_VALUE - 1) * 100).toFixed(1));
+  renderHeatmap(liveMayRet);
+  const hmTag = document.getElementById('hm-live-tag');
+  if (hmTag) hmTag.textContent = `● LIVE mayo: ${liveMayRet >= 0 ? '+' : ''}${liveMayRet}%`;
 
   // 5. Valor mercado vs Costo — top 10 por valor live
   if (chartCost) {
