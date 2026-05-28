@@ -233,8 +233,8 @@
     </div>
   </div>
 
-  <!-- ALERTS -->
-  <div class="alerts">
+  <!-- ALERTS (renderizado dinámico por JS) -->
+  <div class="alerts" id="alerts-bar">
     <div class="alert">⚠️ <span>ASTS</span> — 20.9% del portafolio total (umbral: 20%)</div>
     <div class="alert">⚠️ <span>GOOGL</span> — 20.8% del portafolio total (umbral: 20%)</div>
     <div class="alert">⚠️ <span>ASST</span> — 20.3% del portafolio total (umbral: 20%)</div>
@@ -634,6 +634,9 @@ async function fetchLivePrices() {
     const el = document.getElementById(`pct-${p.ticker}`);
     if (el) el.textContent = `${(v / total * 100).toFixed(1)}%`;
   }
+
+  // Actualizar alertas, gráficos y ⚠️ con valores live
+  updateAllLive(total);
 }
 
 function showDetail(ticker) {
@@ -1167,7 +1170,7 @@ const palette = [
 const donutLabels = [...portfolio.map(p => p.ticker), 'CASH'];
 const donutData   = [...portfolio.map(p => p.value), CASH];
 const donutColors = [...palette.slice(0, portfolio.length), '#4ade80'];
-new Chart(document.getElementById('chartDonut'), {
+let chartDonut = new Chart(document.getElementById('chartDonut'), {
   type: 'doughnut',
   data: {
     labels: donutLabels,
@@ -1209,7 +1212,7 @@ new Chart(document.getElementById('chartDonut'), {
 
 // 2. Barras horizontales — retorno % por activo
 const sortedByRet = [...portfolio].sort((a, b) => b.ret - a.ret);
-new Chart(document.getElementById('chartReturn'), {
+let chartReturn = new Chart(document.getElementById('chartReturn'), {
   type: 'bar',
   data: {
     labels: sortedByRet.map(p => p.ticker),
@@ -1237,7 +1240,7 @@ new Chart(document.getElementById('chartReturn'), {
 
 // 3. Barras agrupadas — valor mercado vs costo
 const top10 = [...portfolio].sort((a, b) => b.value - a.value).slice(0, 10);
-new Chart(document.getElementById('chartCost'), {
+let chartCost = new Chart(document.getElementById('chartCost'), {
   type: 'bar',
   data: {
     labels: top10.map(p => p.ticker),
@@ -1270,6 +1273,89 @@ new Chart(document.getElementById('chartCost'), {
     }
   }
 });
+
+// ── ACTUALIZACIÓN LIVE GLOBAL ─────────────────────────────────────────────────
+// Actualiza alertas, gráficos y ⚠️ en filas con los valores live del portafolio.
+function updateAllLive(liveTotal) {
+
+  // 1. Barra de alertas de concentración
+  const alertsBar = document.getElementById('alerts-bar');
+  if (alertsBar) {
+    const overweight = portfolio.filter(p => {
+      const d  = liveCache[p.ticker];
+      const px = d ? d.c : null;
+      const v  = px ? p.shares * px : p.value;
+      return (v / liveTotal * 100) > 20;
+    });
+    alertsBar.innerHTML = overweight.map(p => {
+      const d  = liveCache[p.ticker];
+      const px = d ? d.c : null;
+      const v  = px ? p.shares * px : p.value;
+      const pct = (v / liveTotal * 100).toFixed(1);
+      return `<div class="alert">⚠️ <span>${p.ticker}</span> — ${pct}% del portafolio total (umbral: 20%)</div>`;
+    }).join('');
+  }
+
+  // 2. ⚠️ en filas de la tabla
+  for (const p of portfolio) {
+    const row = document.getElementById(`row-${p.ticker}`);
+    if (!row) continue;
+    const d  = liveCache[p.ticker];
+    const px = d ? d.c : null;
+    const v  = px ? p.shares * px : p.value;
+    const hasAlert = (v / liveTotal * 100) > 20;
+    const cell = row.querySelector('td:first-child');
+    if (cell) cell.innerHTML = `<strong>${p.ticker}</strong>${hasAlert ? ' ⚠️' : ''}`;
+  }
+
+  // 3. Donut — actualizar datos y total para tooltips/leyenda
+  if (chartDonut) {
+    const liveVals = portfolio.map(p => {
+      const d  = liveCache[p.ticker];
+      const px = d ? d.c : null;
+      return px ? p.shares * px : p.value;
+    });
+    chartDonut.data.datasets[0].data = [...liveVals, CASH];
+    chartDonut.options.plugins.tooltip.callbacks.label = ctx =>
+      ` ${ctx.label}: $${fmt(ctx.parsed, 0)} (${((ctx.parsed / liveTotal) * 100).toFixed(1)}%)`;
+    chartDonut.options.plugins.legend.labels.generateLabels = chart => {
+      const ds = chart.data.datasets[0];
+      return chart.data.labels.map((label, i) => ({
+        text: `${label}  $${fmt(ds.data[i], 0)}  ${((ds.data[i] / liveTotal) * 100).toFixed(1)}%`,
+        fillStyle: ds.backgroundColor[i], strokeStyle: ds.backgroundColor[i],
+        fontColor: '#e8eaf0', color: '#e8eaf0', lineWidth: 0, index: i, hidden: false
+      }));
+    };
+    chartDonut.update('none');
+  }
+
+  // 4. Retorno % — recalcular con precio live vs precio de compra
+  if (chartReturn) {
+    const liveRets = portfolio.map(p => {
+      const d  = liveCache[p.ticker];
+      const px = d ? d.c : p.price;
+      return { ticker: p.ticker, ret: (px - p.buyPrice) / p.buyPrice * 100 };
+    }).sort((a, b) => b.ret - a.ret);
+    chartReturn.data.labels                           = liveRets.map(x => x.ticker);
+    chartReturn.data.datasets[0].data                = liveRets.map(x => parseFloat(x.ret.toFixed(1)));
+    chartReturn.data.datasets[0].backgroundColor     = liveRets.map(x => x.ret >= 0 ? '#22c55e99' : '#ef444499');
+    chartReturn.data.datasets[0].borderColor         = liveRets.map(x => x.ret >= 0 ? '#22c55e' : '#ef4444');
+    chartReturn.update('none');
+  }
+
+  // 5. Valor mercado vs Costo — top 10 por valor live
+  if (chartCost) {
+    const top10Live = portfolio.map(p => {
+      const d  = liveCache[p.ticker];
+      const px = d ? d.c : null;
+      return { ticker: p.ticker, liveVal: px ? p.shares * px : p.value, cost: p.buyPrice * p.shares };
+    }).sort((a, b) => b.liveVal - a.liveVal).slice(0, 10);
+    chartCost.data.labels              = top10Live.map(x => x.ticker);
+    chartCost.data.datasets[0].data   = top10Live.map(x => Math.round(x.liveVal));
+    chartCost.data.datasets[1].data   = top10Live.map(x => Math.round(x.cost));
+    chartCost.update('none');
+  }
+}
 
 // ── INIT — corre al final, cuando todas las celdas ya existen ─────────────────
 (function init() {
