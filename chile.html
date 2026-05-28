@@ -419,57 +419,75 @@ function applyPrices() {
   updateAll();
 }
 
-// ── PRECIOS LIVE — Yahoo Finance vía proxy CORS ───────────────────────────────
-// Yahoo Finance soporta tickers .SN (Bolsa de Santiago) sin API key.
-// Se usa allorigins.win como proxy para evitar restricciones CORS del navegador.
-const YF_PROXY = 'https://api.allorigins.win/raw?url=';
+// ── PRECIOS LIVE — Yahoo Finance vía múltiples proxies CORS ──────────────────
+// Estrategia: intenta 3 proxies distintos por ticker hasta obtener precio válido.
+// Endpoint v8/chart es más estable que v7/quote para stocks internacionales.
+
+function withTimeout(promise, ms) {
+  return new Promise((res, rej) => {
+    const t = setTimeout(() => rej(new Error('timeout')), ms);
+    promise.then(v => { clearTimeout(t); res(v); }, e => { clearTimeout(t); rej(e); });
+  });
+}
+
+const PROXIES_CHL = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+];
+
+async function fetchOnePrice(ticker) {
+  const symbol = ticker + '.SN';
+  const yfUrl  = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+
+  for (const makeProxy of PROXIES_CHL) {
+    try {
+      const res  = await withTimeout(fetch(makeProxy(yfUrl)), 8000);
+      if (!res.ok) continue;
+      const text = await res.text();
+      if (text.trim().startsWith('<')) continue; // proxy devolvió HTML de error
+      const data  = JSON.parse(text);
+      const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      const prev  = data?.chart?.result?.[0]?.meta?.previousClose;
+      if (price && price > 0) return { price, prev };
+    } catch { /* probar siguiente proxy */ }
+  }
+  return null;
+}
 
 async function fetchLivePricesCHL() {
   const btn      = document.getElementById('btn-live');
   const statusEl = document.getElementById('price-status');
   if (btn) btn.disabled = true;
-  statusEl.style.color   = 'var(--muted)';
-  statusEl.textContent   = '⟳ Conectando con Yahoo Finance...';
+  statusEl.style.color = 'var(--muted)';
 
-  try {
-    // Construir lista de símbolos Yahoo (.SN = Bolsa de Santiago)
-    const symbols = portfolio.map(p => p.ticker + '.SN').join(',');
-    const yahooUrl = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent,previousClose`;
-    const res = await fetch(YF_PROXY + encodeURIComponent(yahooUrl),
-                            { signal: AbortSignal.timeout(12000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const saved = JSON.parse(localStorage.getItem(PRICE_KEY) || '{}');
+  let updated = 0;
 
-    const json    = await res.json();
-    const results = json?.quoteResponse?.result;
-    if (!results?.length) throw new Error('Sin datos en la respuesta');
-
-    const saved = JSON.parse(localStorage.getItem(PRICE_KEY) || '{}');
-    let updated = 0;
-
-    results.forEach(q => {
-      // Yahoo devuelve "COLBUN.SN" → extraemos "COLBUN"
-      const tk = (q.symbol || '').replace(/\.SN$/i, '');
-      const p  = portfolio.find(x => x.ticker === tk);
-      if (!p || !q.regularMarketPrice) return;
-      p.price        = q.regularMarketPrice;
-      p.prevClose    = q.previousClose    || null;
-      p.dayChange    = q.regularMarketChange    || 0;
-      p.dayChangePct = q.regularMarketChangePercent || 0;
-      saved[p.ticker] = q.regularMarketPrice;
+  for (let i = 0; i < portfolio.length; i++) {
+    const p = portfolio[i];
+    statusEl.textContent = `⟳ Cargando precios... ${i + 1}/${portfolio.length} (${p.ticker})`;
+    const result = await fetchOnePrice(p.ticker);
+    if (result) {
+      p.price = result.price;
+      if (result.prev) { p.prevClose = result.prev; p.dayChange = result.price - result.prev; }
+      saved[p.ticker] = result.price;
       updated++;
-    });
+    }
+    if (i < portfolio.length - 1) await new Promise(r => setTimeout(r, 400));
+  }
 
-    localStorage.setItem(PRICE_KEY, JSON.stringify(saved));
-    const now = new Date().toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
+  localStorage.setItem(PRICE_KEY, JSON.stringify(saved));
+  const now = new Date().toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
+  if (updated > 0) {
     statusEl.style.color = 'var(--green)';
     statusEl.textContent = `✓ ${updated}/${portfolio.length} precios live · ${now} · Yahoo Finance`;
     updateAll();
-  } catch (err) {
+  } else {
     statusEl.style.color = 'var(--yellow)';
-    statusEl.textContent = `⚠ Error: ${err.message} — ingresá los precios manualmente o reintentá`;
-  } finally {
-    if (btn) btn.disabled = false;
+    statusEl.textContent = '⚠ Sin conexión con Yahoo Finance — ingresá los precios manualmente';
   }
+  if (btn) btn.disabled = false;
 }
 
 // ── UPDATE ALL ────────────────────────────────────────────────────────────────
