@@ -152,6 +152,18 @@
     .col-picker-footer a:hover { text-decoration: underline; }
 
     /* Charts */
+    /* Yearly return section */
+    .yearly-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .yearly-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .yearly-card .year-label { font-size: 22px; font-weight: 800; margin-bottom: 2px; }
+    .yearly-card .year-tag  { font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted); margin-bottom: 12px; }
+    .yearly-card .year-ret  { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .yearly-card .year-row  { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+    .yearly-card .year-row span:last-child { color: var(--text); font-weight: 600; }
+    .yearly-card .year-note { font-size: 10px; color: var(--muted); margin-top: 8px; font-style: italic; }
+    @media (max-width: 900px) { .yearly-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .yearly-grid { grid-template-columns: 1fr; } }
+
     .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 24px; }
     .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
     .chart-wrap { position: relative; height: 280px; }
@@ -228,6 +240,10 @@
     <div class="alert">⚠️ <span>ASST</span> — 20.3% del portafolio total (umbral: 20%)</div>
   </div>
 
+  <!-- YEARLY RETURNS -->
+  <div class="section-title" style="margin-bottom:12px">Rendimiento por año</div>
+  <div class="yearly-grid" id="yearly-grid"></div>
+
   <!-- CHARTS -->
   <div class="charts-row">
     <div class="chart-card">
@@ -279,7 +295,6 @@
             <th class="sortable" data-col="value"     onclick="sortTable('value')">    Valor     <span class="sort-icon"></span></th>
             <th class="sortable" data-col="pct"       onclick="sortTable('pct')">      % Portafolio <span class="sort-icon"></span></th>
             <th class="sortable" data-col="ret"       onclick="sortTable('ret')">      Retorno   <span class="sort-icon"></span></th>
-            <th class="sortable" data-col="annualRet" onclick="sortTable('annualRet')"> Ret. Anual <span class="sort-icon"></span></th>
             <th>Recomendación</th>
           </tr>
         </thead>
@@ -715,8 +730,7 @@ const COLUMNS = [
   { idx: 9,  key: 'value',     label: 'Valor',        locked: false },
   { idx: 10, key: 'pct',       label: '% Portafolio', locked: false },
   { idx: 11, key: 'ret',       label: 'Retorno',      locked: false },
-  { idx: 12, key: 'annualRet', label: 'Ret. Anual',   locked: false },
-  { idx: 13, key: 'rec',       label: 'Recomendación',locked: false },
+  { idx: 12, key: 'rec',       label: 'Recomendación',locked: false },
 ];
 const COL_STORAGE_KEY = 'portfolio_hidden_cols';
 let hiddenCols = new Set(JSON.parse(localStorage.getItem(COL_STORAGE_KEY) || '[]'));
@@ -819,9 +833,6 @@ function renderTable() {
       } else if (sortCol === 'target' || sortCol === 'upside') {
         va = recMap[a.ticker]?.[sortCol] ?? -Infinity;
         vb = recMap[b.ticker]?.[sortCol] ?? -Infinity;
-      } else if (sortCol === 'annualRet') {
-        va = annualRet(a);
-        vb = annualRet(b);
       } else {
         va = a[sortCol]; vb = b[sortCol];
         if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
@@ -831,7 +842,7 @@ function renderTable() {
   }
 
   if (visible.length === 0) {
-    pb.innerHTML = '<tr><td colspan="14" class="no-results">Sin resultados para el filtro seleccionado.</td></tr>';
+    pb.innerHTML = '<tr><td colspan="13" class="no-results">Sin resultados para el filtro seleccionado.</td></tr>';
     return;
   }
 
@@ -869,7 +880,6 @@ function renderTable() {
         <td id="val-${p.ticker}"><strong>$${fmt(p.value, 0)}</strong></td>
         <td id="pct-${p.ticker}">${(p.value / totalWithCash * 100).toFixed(1)}%</td>
         <td class="${retColor}">${retSign}${p.ret}%</td>
-        <td class="${annualRet(p) >= 0 ? 'green' : 'red'}">${annualRet(p) >= 0 ? '+' : ''}${annualRet(p).toFixed(1)}%</td>
         <td>${badge}</td>
       </tr>`;
   });
@@ -975,6 +985,64 @@ transactions.forEach(t => {
       <td>${t.amount}</td>
     </tr>`;
 });
+
+// ── RENDIMIENTO POR AÑO ───────────────────────────────────────────────────────
+// Metodología: Simple Dietz  →  (ValorFin - ValorInicio - DepósitosNetos) / (ValorInicio + DepósitosNetos/2)
+// Los valores de fin de año son estimaciones basadas en precios históricos de cierre.
+const yearlyPerf = [
+  {
+    year: '2023', tag: 'parcial · Jul–Dic',
+    startVal: 0,      endVal: 649,    deposits: 604.55,
+    deposited: 604.55, positions: 'Primera inversión: DIS',
+    note: 'Período de 167 días. Retorno simple sobre capital invertido.'
+  },
+  {
+    year: '2024', tag: 'Ene–Dic',
+    startVal: 649,    endVal: 4487,   deposits: 3302,
+    deposited: 3302,   positions: 'GOOGL · CELH · ASML · PEP',
+    note: 'Depósitos: sep $1,271 · oct $1,224 · dic $808'
+  },
+  {
+    year: '2025', tag: 'Ene–Dic',
+    startVal: 4487,   endVal: 21056,  deposits: 11584,
+    deposited: 11584,  positions: 'ASTS · UNH · CNC · NAGARRO · NVO · ADBE...',
+    note: 'Valor fin de año estimado con precios históricos de cierre.'
+  },
+  {
+    year: '2026', tag: 'YTD · Ene–May',
+    startVal: 21056,  endVal: 41604,  deposits: 6041,
+    deposited: 6041,   positions: 'NIO · MSTR · IIPR · CRM · MELI · LDI...',
+    note: 'Valor al 24-may-2026 (snapshot). ASTS +376%, GOOGL +135%.'
+  },
+];
+
+(function renderYearly() {
+  const grid = document.getElementById('yearly-grid');
+  if (!grid) return;
+  grid.innerHTML = yearlyPerf.map(d => {
+    let ret;
+    if (d.startVal === 0) {
+      ret = (d.endVal - d.deposits) / d.deposits * 100;
+    } else {
+      ret = (d.endVal - d.startVal - d.deposits) / (d.startVal + d.deposits / 2) * 100;
+    }
+    const retColor = ret >= 0 ? 'green' : 'red';
+    const retSign  = ret >= 0 ? '+' : '';
+    const gain     = d.endVal - d.startVal - d.deposits;
+    const gainSign = gain >= 0 ? '+' : '';
+    return `
+      <div class="yearly-card">
+        <div class="year-label">${d.year}</div>
+        <div class="year-tag">${d.tag}</div>
+        <div class="year-ret ${retColor}">${retSign}${ret.toFixed(1)}%</div>
+        <div class="year-row"><span>Capital ingresado</span><span>$${fmt(d.deposits, 0)}</span></div>
+        <div class="year-row"><span>Valor inicio</span><span>$${fmt(d.startVal, 0)}</span></div>
+        <div class="year-row"><span>Valor fin</span><span>$${fmt(d.endVal, 0)}</span></div>
+        <div class="year-row"><span>Ganancia/Pérdida</span><span class="${retColor}">${gainSign}$${fmt(Math.abs(gain), 0)}</span></div>
+        <div class="year-note">Posiciones: ${d.positions}<br>${d.note}</div>
+      </div>`;
+  }).join('');
+})();
 
 // ── CHARTS ────────────────────────────────────────────────────────────────────
 
