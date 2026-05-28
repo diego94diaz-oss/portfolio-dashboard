@@ -220,7 +220,7 @@
 </div><!-- end .main -->
 
 <footer>
-  Portfolio CLP · Bolsa de Santiago · Precios estimados al 28-may-2026 · No constituye asesoría financiera regulada.
+  Portfolio CLP · Bolsa de Santiago · Precios live vía Yahoo Finance · No constituye asesoría financiera regulada.
 </footer>
 
 <script>
@@ -228,17 +228,19 @@
 // Precios actuales: estimaciones al 28-may-2026. Actualizá manualmente si es necesario.
 // buyPrice = precio promedio ponderado de compra (CLP por acción)
 // div      = dividendos + intereses cobrados por esta posición (CLP)
+// Precios actualizados al 28-may-2026 vía Yahoo Finance (fetchOnePrice en carga)
+// yahooTicker: ticker alternativo en Yahoo Finance cuando difiere del ticker interno
 const portfolio = [
-  { ticker:"COLBUN",     name:"Colbún S.A.",                      shares:43947,  buyPrice:122.59,  price:115,    value:5053905,  pct:34.0, ret:-6.2,  div:518363,  alert:true,  firstBuy:"2024-04-09" },
-  { ticker:"ILC",        name:"Inv. La Construcción S.A.",         shares:280,    buyPrice:7663,    price:8500,   value:2380000,  pct:16.0, ret:10.9,  div:168000,  alert:false, firstBuy:"2024-07-02" },
-  { ticker:"INVERCAP",   name:"Invercap S.A.",                     shares:1046,   buyPrice:1909,    price:1800,   value:1882800,  pct:12.7, ret:-5.7,  div:0,       alert:false, firstBuy:"2024-01-05" },
-  { ticker:"NUAM",       name:"Holding Bursátil Regional S.A.",    shares:381,    buyPrice:4035,    price:3800,   value:1447800,  pct:9.7,  ret:-5.8,  div:122628,  alert:false, firstBuy:"2024-03-25" },
-  { ticker:"BICECORP",   name:"Bicecorp S.A.",                     shares:3894,   buyPrice:276.43,  price:290,    value:1129260,  pct:7.6,  ret:4.9,   div:87615,   alert:false, firstBuy:"2025-03-04" },
-  { ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",             shares:375,    buyPrice:2691,    price:2900,   value:1087500,  pct:7.3,  ret:7.8,   div:332625,  alert:false, firstBuy:"2023-08-31" },
-  { ticker:"HABITAT",    name:"AFP Habitat S.A.",                  shares:839,    buyPrice:832,     price:760,    value:637640,   pct:4.3,  ret:-8.7,  div:92290,   alert:false, firstBuy:"2024-10-21" },
-  { ticker:"SQM-B",      name:"SQM (Soc. Química y Minera)",       shares:21,     buyPrice:43285,   price:30000,  value:630000,   pct:4.2,  ret:-30.7, div:4132,    alert:false, firstBuy:"2024-04-17" },
-  { ticker:"CFINRENTAS", name:"Independencia Adm. Gral. S.A.",     shares:282,    buyPrice:1417,    price:1380,   value:389160,   pct:2.6,  ret:-2.6,  div:25380,   alert:false, firstBuy:"2025-01-09" },
-  { ticker:"EMBONOR-B",  name:"Coca-Cola Embonor S.A.",            shares:168,    buyPrice:1184,    price:1300,   value:218400,   pct:1.5,  ret:9.8,   div:18144,   alert:false, firstBuy:"2024-10-16" },
+  { ticker:"ILC",        yahooTicker:"ILC",        name:"Inv. La Construcción S.A.",      shares:280,    buyPrice:7663,    price:22350,  value:6258000,  pct:25.7, ret:191.7, div:168000,  firstBuy:"2024-07-02" },
+  { ticker:"COLBUN",     yahooTicker:"COLBUN",     name:"Colbún S.A.",                    shares:43947,  buyPrice:122.59,  price:134,    value:5888898,  pct:24.2, ret:9.3,   div:518363,  firstBuy:"2024-04-09" },
+  { ticker:"LIPIGAS",    yahooTicker:"LIPIGAS",    name:"Empresas Lipigas S.A.",           shares:375,    buyPrice:2691,    price:8339,   value:3127125,  pct:12.8, ret:209.9, div:332625,  firstBuy:"2023-08-31" },
+  { ticker:"INVERCAP",   yahooTicker:"INVERCAP",   name:"Invercap S.A.",                   shares:1046,   buyPrice:1909,    price:1966,   value:2056636,  pct:8.4,  ret:3.0,   div:0,       firstBuy:"2024-01-05" },
+  { ticker:"NUAM",       yahooTicker:"NUAM",       name:"Holding Bursátil Regional S.A.", shares:381,    buyPrice:4035,    price:5020,   value:1912620,  pct:7.8,  ret:24.4,  div:122628,  firstBuy:"2024-03-25" },
+  { ticker:"SQM-B",      yahooTicker:"SQM-B",      name:"SQM (Soc. Química y Minera)",    shares:21,     buyPrice:43285,   price:75368,  value:1582728,  pct:6.5,  ret:74.1,  div:4132,    firstBuy:"2024-04-17" },
+  { ticker:"BICECORP",   yahooTicker:"BICE",       name:"Bicecorp S.A.",                  shares:3894,   buyPrice:276.43,  price:386,    value:1503084,  pct:6.2,  ret:39.6,  div:87615,   firstBuy:"2025-03-04" },
+  { ticker:"HABITAT",    yahooTicker:"HABITAT",    name:"AFP Habitat S.A.",               shares:839,    buyPrice:832,     price:1364,   value:1144396,  pct:4.7,  ret:63.9,  div:92290,   firstBuy:"2024-10-21" },
+  { ticker:"CFINRENTAS", yahooTicker:"CFINRENTAS", name:"Independencia Adm. Gral. S.A.", shares:282,    buyPrice:1417,    price:2224,   value:627168,   pct:2.6,  ret:57.0,  div:25380,   firstBuy:"2025-01-09" },
+  { ticker:"EMBONOR-B",  yahooTicker:"EMBONOR-B",  name:"Coca-Cola Embonor S.A.",         shares:168,    buyPrice:1184,    price:1642,   value:275856,   pct:1.1,  ret:38.7,  div:18144,   firstBuy:"2024-10-16" },
 ];
 
 // ── TRANSACCIONES — datos exactos del CSV exportado desde la plataforma ───────
@@ -437,7 +439,9 @@ const PROXIES_CHL = [
 ];
 
 async function fetchOnePrice(ticker) {
-  const symbol = ticker + '.SN';
+  const p      = portfolio.find(x => x.ticker === ticker);
+  const yTk    = (p?.yahooTicker || ticker); // BICECORP → BICE en Yahoo Finance
+  const symbol = yTk + '.SN';
   const yfUrl  = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
 
   for (const makeProxy of PROXIES_CHL) {
@@ -447,8 +451,9 @@ async function fetchOnePrice(ticker) {
       const text = await res.text();
       if (text.trim().startsWith('<')) continue; // proxy devolvió HTML de error
       const data  = JSON.parse(text);
-      const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      const prev  = data?.chart?.result?.[0]?.meta?.previousClose;
+      const meta  = data?.chart?.result?.[0]?.meta;
+      const price = meta?.regularMarketPrice;
+      const prev  = meta?.previousClose || meta?.chartPreviousClose;
       if (price && price > 0) return { price, prev };
     } catch { /* probar siguiente proxy */ }
   }
