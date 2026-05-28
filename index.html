@@ -1005,31 +1005,35 @@ transactions.forEach(t => {
 });
 
 // ── RENDIMIENTO POR AÑO ───────────────────────────────────────────────────────
-// Metodología: Simple Dietz por año calendario
-//   Retorno año = (ValorFin - ValorInicio - Depósitos) / (ValorInicio + Depósitos/2)
-// Los valores de fin de año son estimaciones con precios históricos de cierre.
+// Metodología: TTWROR (Tasa de Retorno Ponderada por Tiempo) — estándar CFA.
+// Encadena sub-períodos entre cada flujo de efectivo, eliminando el efecto del
+// tamaño y timing de los depósitos. Valores provistos por plataforma externa.
 const yearlyPerf = [
   {
     year: '2023', tag: 'parcial · Jul–Dic',
-    startVal: 0,     endVal: 649,   deposits: 604.55,
+    ret: 5.6,
+    deposits: 604.55, endVal: 649,
     positions: 'DIS (Walt Disney)',
     note: '167 días. Primera inversión del portafolio.'
   },
   {
     year: '2024', tag: 'Ene–Dic',
-    startVal: 649,   endVal: 4487,  deposits: 3302,
+    ret: 75.7,
+    deposits: 3302, endVal: 4487,
     positions: 'GOOGL · CELH · ASML · PEP',
-    note: 'Depósitos: sep $1,271 · oct $1,224 · dic $808'
+    note: 'Sub-períodos encadenados: DIS +25% → AAPL +27% → PEP +8% → GOOGL.'
   },
   {
     year: '2025', tag: 'Ene–Dic',
-    startVal: 4487,  endVal: 21056, deposits: 11584,
+    ret: 82.1,
+    deposits: 11584, endVal: 21056,
     positions: 'ASTS · UNH · CNC · NAGARRO · NVO · ADBE...',
-    note: 'Valor dic-2025 estimado con precios históricos de cierre.'
+    note: 'ASTS comprado a ~$22. Valor dic-2025 estimado con precios históricos.'
   },
   {
     year: '2026', tag: 'YTD · Ene–May',
-    startVal: 21056, endVal: 44402, deposits: 6041,
+    ret: 43.4,
+    deposits: 6041, endVal: 44402,
     positions: 'NIO · MSTR · IIPR · CRM · MELI · LDI...',
     note: 'Equity $41,604 + efectivo $2,798. Snapshot 24-may-2026.'
   },
@@ -1039,22 +1043,15 @@ const yearlyPerf = [
   const grid = document.getElementById('yearly-grid');
   if (!grid) return;
   grid.innerHTML = yearlyPerf.map(d => {
-    const ret = d.startVal === 0
-      ? (d.endVal - d.deposits) / d.deposits * 100
-      : (d.endVal - d.startVal - d.deposits) / (d.startVal + d.deposits / 2) * 100;
-    const gain     = d.endVal - d.startVal - d.deposits;
-    const retColor = ret  >= 0 ? 'green' : 'red';
-    const retSign  = ret  >= 0 ? '+' : '';
-    const gainSign = gain >= 0 ? '+' : '';
+    const retColor = d.ret >= 0 ? 'green' : 'red';
+    const retSign  = d.ret >= 0 ? '+' : '';
     return `
       <div class="yearly-card">
         <div class="year-label">${d.year}</div>
         <div class="year-tag">${d.tag}</div>
-        <div class="year-ret ${retColor}">${retSign}${ret.toFixed(1)}%</div>
-        <div class="year-row"><span>Valor inicio de año</span><span>$${fmt(d.startVal, 0)}</span></div>
+        <div class="year-ret ${retColor}">${retSign}${d.ret.toFixed(1)}%</div>
         <div class="year-row"><span>Capital ingresado</span><span>$${fmt(d.deposits, 0)}</span></div>
         <div class="year-row"><span>Valor fin de año</span><span>$${fmt(d.endVal, 0)}</span></div>
-        <div class="year-row"><span>Ganancia del año</span><span class="${retColor}">${gainSign}$${fmt(Math.abs(gain), 0)}</span></div>
         <div class="year-note">Posiciones: ${d.positions}<br>${d.note}</div>
       </div>`;
   }).join('');
