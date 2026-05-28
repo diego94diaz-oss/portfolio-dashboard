@@ -279,6 +279,7 @@
             <th class="sortable" data-col="value"     onclick="sortTable('value')">    Valor     <span class="sort-icon"></span></th>
             <th class="sortable" data-col="pct"       onclick="sortTable('pct')">      % Portafolio <span class="sort-icon"></span></th>
             <th class="sortable" data-col="ret"       onclick="sortTable('ret')">      Retorno   <span class="sort-icon"></span></th>
+            <th class="sortable" data-col="annualRet" onclick="sortTable('annualRet')"> Ret. Anual <span class="sort-icon"></span></th>
             <th>Recomendación</th>
           </tr>
         </thead>
@@ -360,26 +361,32 @@
 // ── DATA ──────────────────────────────────────────────────────────────────────
 
 const portfolio = [
-  { ticker:"ASTS", name:"AST SpaceMobile", shares:87.44, buyPrice:22.18, price:105.86, value:9256.85, pct:22.2, ret:376.6, alert:true },
-  { ticker:"GOOGL", name:"Alphabet Inc", shares:24.1, buyPrice:154.56, price:382.97, value:9231.04, pct:22.2, ret:134.5, alert:true },
-  { ticker:"ASST", name:"Strive Inc", shares:495.01, buyPrice:14.49, price:18.21, value:9014.2, pct:21.7, ret:25.3, alert:true },
-  { ticker:"LDI", name:"loanDepot Inc", shares:4395.27, buyPrice:1.21, price:1.25, value:5494.09, pct:13.2, ret:2.6, alert:false },
-  { ticker:"NVO", name:"Novo Nordisk", shares:29.27, buyPrice:60.47, price:43.8, value:1282.06, pct:3.1, ret:-27.1, alert:false },
-  { ticker:"NIO", name:"NIO Inc ADR", shares:207.28, buyPrice:4.82, price:5.2, value:1077.84, pct:2.6, ret:7.6, alert:false },
-  { ticker:"MSTR", name:"Strategy Inc", shares:6.66, buyPrice:146.78, price:159.89, value:1064.72, pct:2.6, ret:8.6, alert:false },
-  { ticker:"MELI", name:"MercadoLibre", shares:0.548, buyPrice:1825.49, price:1664.42, value:911.77, pct:2.2, ret:-8.8, alert:false },
-  { ticker:"IIPR", name:"Innovative Industrial Prop.", shares:10.815, buyPrice:45.62, price:57.06, value:617.1, pct:1.5, ret:24.7, alert:false },
-  { ticker:"PEP", name:"PepsiCo Inc", shares:4.047, buyPrice:157.85, price:150.57, value:609.37, pct:1.5, ret:3.5, alert:false },
-  { ticker:"FLWS", name:"1-800-Flowers.com", shares:136.99, buyPrice:3.65, price:4.34, value:594.52, pct:1.4, ret:18.7, alert:false },
-  { ticker:"CRM", name:"Salesforce Inc", shares:2.6946, buyPrice:185.0, price:180.07, value:485.22, pct:1.2, ret:-2.9, alert:false },
-  { ticker:"TROW", name:"T. Rowe Price Group", shares:4.4749, buyPrice:89.12, price:103.39, value:462.66, pct:1.1, ret:15.7, alert:false },
-  { ticker:"MSFT", name:"Microsoft Corp", shares:0.8302, buyPrice:360.27, price:418.57, value:347.5, pct:0.8, ret:15.8, alert:false },
-  { ticker:"ADBE", name:"Adobe Inc", shares:1.4166, buyPrice:352.93, price:244.76, value:346.73, pct:0.8, ret:-30.9, alert:false },
-  { ticker:"AMZN", name:"Amazon.com", shares:0.8902, buyPrice:207.38, price:266.32, value:237.07, pct:0.6, ret:35.6, alert:false },
-  { ticker:"ASST-VRS", name:"Strive Variable Rate Security", shares:2.0, buyPrice:95.2, price:100.01, value:200.02, pct:0.5, ret:4.7, alert:false },
-  { ticker:"MSTR-VRS", name:"Strategy Variable Rate Security", shares:2.0, buyPrice:98.95, price:99.3, value:198.6, pct:0.5, ret:0.1, alert:false },
-  { ticker:"NKE", name:"Nike Inc", shares:3.867, buyPrice:51.56, price:44.67, value:172.74, pct:0.4, ret:-13.6, alert:false },
+  { ticker:"ASTS",     name:"AST SpaceMobile",            shares:87.44,   buyPrice:22.18,   price:105.86, value:9256.85, pct:22.2, ret:376.6,  alert:true,  firstBuy:"2025-04-03" },
+  { ticker:"GOOGL",    name:"Alphabet Inc",                shares:24.1,    buyPrice:154.56,  price:382.97, value:9231.04, pct:22.2, ret:134.5,  alert:true,  firstBuy:"2024-09-12" },
+  { ticker:"ASST",     name:"Strive Inc",                  shares:495.01,  buyPrice:14.49,   price:18.21,  value:9014.2,  pct:21.7, ret:25.3,   alert:true,  firstBuy:"2025-12-26" },
+  { ticker:"LDI",      name:"loanDepot Inc",               shares:4395.27, buyPrice:1.21,    price:1.25,   value:5494.09, pct:13.2, ret:2.6,    alert:false, firstBuy:"2026-05-12" },
+  { ticker:"NVO",      name:"Novo Nordisk",                shares:29.27,   buyPrice:60.47,   price:43.8,   value:1282.06, pct:3.1,  ret:-27.1,  alert:false, firstBuy:"2025-06-26" },
+  { ticker:"NIO",      name:"NIO Inc ADR",                 shares:207.28,  buyPrice:4.82,    price:5.2,    value:1077.84, pct:2.6,  ret:7.6,    alert:false, firstBuy:"2026-01-05" },
+  { ticker:"MSTR",     name:"Strategy Inc",                shares:6.66,    buyPrice:146.78,  price:159.89, value:1064.72, pct:2.6,  ret:8.6,    alert:false, firstBuy:"2026-01-27" },
+  { ticker:"MELI",     name:"MercadoLibre",                shares:0.548,   buyPrice:1825.49, price:1664.42,value:911.77,  pct:2.2,  ret:-8.8,   alert:false, firstBuy:"2026-04-22" },
+  { ticker:"IIPR",     name:"Innovative Industrial Prop.", shares:10.815,  buyPrice:45.62,   price:57.06,  value:617.1,   pct:1.5,  ret:24.7,   alert:false, firstBuy:"2026-02-23" },
+  { ticker:"PEP",      name:"PepsiCo Inc",                 shares:4.047,   buyPrice:157.85,  price:150.57, value:609.37,  pct:1.5,  ret:3.5,    alert:false, firstBuy:"2024-11-18" },
+  { ticker:"FLWS",     name:"1-800-Flowers.com",           shares:136.99,  buyPrice:3.65,    price:4.34,   value:594.52,  pct:1.4,  ret:18.7,   alert:false, firstBuy:"2025-10-31" },
+  { ticker:"CRM",      name:"Salesforce Inc",              shares:2.6946,  buyPrice:185.0,   price:180.07, value:485.22,  pct:1.2,  ret:-2.9,   alert:false, firstBuy:"2026-05-06" },
+  { ticker:"TROW",     name:"T. Rowe Price Group",         shares:4.4749,  buyPrice:89.12,   price:103.39, value:462.66,  pct:1.1,  ret:15.7,   alert:false, firstBuy:"2026-03-30" },
+  { ticker:"MSFT",     name:"Microsoft Corp",              shares:0.8302,  buyPrice:360.27,  price:418.57, value:347.5,   pct:0.8,  ret:15.8,   alert:false, firstBuy:"2026-03-30" },
+  { ticker:"ADBE",     name:"Adobe Inc",                   shares:1.4166,  buyPrice:352.93,  price:244.76, value:346.73,  pct:0.8,  ret:-30.9,  alert:false, firstBuy:"2025-09-22" },
+  { ticker:"AMZN",     name:"Amazon.com",                  shares:0.8902,  buyPrice:207.38,  price:266.32, value:237.07,  pct:0.6,  ret:35.6,   alert:false, firstBuy:"2026-02-06" },
+  { ticker:"ASST-VRS", name:"Strive Variable Rate Sec.",   shares:2.0,     buyPrice:95.2,    price:100.01, value:200.02,  pct:0.5,  ret:4.7,    alert:false, firstBuy:"2026-01-30" },
+  { ticker:"MSTR-VRS", name:"Strategy Variable Rate Sec.", shares:2.0,     buyPrice:98.95,   price:99.3,   value:198.6,   pct:0.5,  ret:0.1,    alert:false, firstBuy:"2026-01-30" },
+  { ticker:"NKE",      name:"Nike Inc",                    shares:3.867,   buyPrice:51.56,   price:44.67,  value:172.74,  pct:0.4,  ret:-13.6,  alert:false, firstBuy:"2026-03-30" },
 ];
+
+// Calcula retorno anualizado: (1 + ret%)^(365/días) - 1
+function annualRet(p) {
+  const days = Math.max((new Date() - new Date(p.firstBuy)) / 86400000, 1);
+  return (Math.pow(1 + p.ret / 100, 365 / days) - 1) * 100;
+}
 
 const recommendations = [
   { ticker:"ASTS", upside:-21.2, signal:"sell", target:83.47, currentPrice:105.86, analysts:9,
@@ -708,7 +715,8 @@ const COLUMNS = [
   { idx: 9,  key: 'value',     label: 'Valor',        locked: false },
   { idx: 10, key: 'pct',       label: '% Portafolio', locked: false },
   { idx: 11, key: 'ret',       label: 'Retorno',      locked: false },
-  { idx: 12, key: 'rec',       label: 'Recomendación',locked: false },
+  { idx: 12, key: 'annualRet', label: 'Ret. Anual',   locked: false },
+  { idx: 13, key: 'rec',       label: 'Recomendación',locked: false },
 ];
 const COL_STORAGE_KEY = 'portfolio_hidden_cols';
 let hiddenCols = new Set(JSON.parse(localStorage.getItem(COL_STORAGE_KEY) || '[]'));
@@ -811,6 +819,9 @@ function renderTable() {
       } else if (sortCol === 'target' || sortCol === 'upside') {
         va = recMap[a.ticker]?.[sortCol] ?? -Infinity;
         vb = recMap[b.ticker]?.[sortCol] ?? -Infinity;
+      } else if (sortCol === 'annualRet') {
+        va = annualRet(a);
+        vb = annualRet(b);
       } else {
         va = a[sortCol]; vb = b[sortCol];
         if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
@@ -820,7 +831,7 @@ function renderTable() {
   }
 
   if (visible.length === 0) {
-    pb.innerHTML = '<tr><td colspan="13" class="no-results">Sin resultados para el filtro seleccionado.</td></tr>';
+    pb.innerHTML = '<tr><td colspan="14" class="no-results">Sin resultados para el filtro seleccionado.</td></tr>';
     return;
   }
 
@@ -858,6 +869,7 @@ function renderTable() {
         <td id="val-${p.ticker}"><strong>$${fmt(p.value, 0)}</strong></td>
         <td id="pct-${p.ticker}">${(p.value / totalWithCash * 100).toFixed(1)}%</td>
         <td class="${retColor}">${retSign}${p.ret}%</td>
+        <td class="${annualRet(p) >= 0 ? 'green' : 'red'}">${annualRet(p) >= 0 ? '+' : ''}${annualRet(p).toFixed(1)}%</td>
         <td>${badge}</td>
       </tr>`;
   });
