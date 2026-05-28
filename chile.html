@@ -34,15 +34,16 @@
     .section-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px; }
 
     /* Cards */
-    .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 20px; }
+    .cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-bottom: 20px; }
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
     .card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 8px; }
-    .card .value { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+    .card .value { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
     .card .sub   { font-size: 11px; color: var(--muted); }
     .green { color: var(--green); }
     .red   { color: var(--red); }
     .blue  { color: var(--blue); }
-    @media (max-width: 900px) { .cards { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 1100px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 700px)  { .cards { grid-template-columns: 1fr 1fr; } }
 
     /* Alerts */
     .alerts { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
@@ -131,7 +132,7 @@
     <div class="card">
       <div class="label">Valor total</div>
       <div class="value" id="card-total">—</div>
-      <div class="sub" id="card-total-sub">10 posiciones</div>
+      <div class="sub" id="card-total-sub">13 posiciones</div>
     </div>
     <div class="card">
       <div class="label">Retorno total</div>
@@ -145,8 +146,13 @@
     </div>
     <div class="card">
       <div class="label">Dividendos + Intereses</div>
-      <div class="value green">$2.057.605</div>
+      <div class="value green" id="card-div">$2.708.728</div>
       <div class="sub">Historial completo 2023–2026</div>
+    </div>
+    <div class="card">
+      <div class="label">Efectivo disponible</div>
+      <div class="value blue">$1.388.543</div>
+      <div class="sub">Cuenta ITAU BCS</div>
     </div>
     <div class="card">
       <div class="label">Retorno incl. dividendos</div>
@@ -228,24 +234,58 @@
 // Precios actuales: estimaciones al 28-may-2026. Actualizá manualmente si es necesario.
 // buyPrice = precio promedio ponderado de compra (CLP por acción)
 // div      = dividendos + intereses cobrados por esta posición (CLP)
-// Precios actualizados al 28-may-2026 vía Yahoo Finance (fetchOnePrice en carga)
-// yahooTicker: ticker alternativo en Yahoo Finance cuando difiere del ticker interno
+// Precios actualizados al 28-may-2026 vía Yahoo Finance
+// yahooTicker: ticker en Yahoo Finance cuando difiere del ticker interno
 const portfolio = [
-  { ticker:"ILC",        yahooTicker:"ILC",        name:"Inv. La Construcción S.A.",      shares:280,    buyPrice:7663,    price:22350,  value:6258000,  pct:25.7, ret:191.7, div:168000,  firstBuy:"2024-07-02" },
-  { ticker:"COLBUN",     yahooTicker:"COLBUN",     name:"Colbún S.A.",                    shares:43947,  buyPrice:122.59,  price:134,    value:5888898,  pct:24.2, ret:9.3,   div:518363,  firstBuy:"2024-04-09" },
-  { ticker:"LIPIGAS",    yahooTicker:"LIPIGAS",    name:"Empresas Lipigas S.A.",           shares:375,    buyPrice:2691,    price:8339,   value:3127125,  pct:12.8, ret:209.9, div:332625,  firstBuy:"2023-08-31" },
-  { ticker:"INVERCAP",   yahooTicker:"INVERCAP",   name:"Invercap S.A.",                   shares:1046,   buyPrice:1909,    price:1966,   value:2056636,  pct:8.4,  ret:3.0,   div:0,       firstBuy:"2024-01-05" },
-  { ticker:"NUAM",       yahooTicker:"NUAM",       name:"Holding Bursátil Regional S.A.", shares:381,    buyPrice:4035,    price:5020,   value:1912620,  pct:7.8,  ret:24.4,  div:122628,  firstBuy:"2024-03-25" },
-  { ticker:"SQM-B",      yahooTicker:"SQM-B",      name:"SQM (Soc. Química y Minera)",    shares:21,     buyPrice:43285,   price:75368,  value:1582728,  pct:6.5,  ret:74.1,  div:4132,    firstBuy:"2024-04-17" },
-  { ticker:"BICECORP",   yahooTicker:"BICE",       name:"Bicecorp S.A.",                  shares:3894,   buyPrice:276.43,  price:386,    value:1503084,  pct:6.2,  ret:39.6,  div:87615,   firstBuy:"2025-03-04" },
-  { ticker:"HABITAT",    yahooTicker:"HABITAT",    name:"AFP Habitat S.A.",               shares:839,    buyPrice:832,     price:1364,   value:1144396,  pct:4.7,  ret:63.9,  div:92290,   firstBuy:"2024-10-21" },
-  { ticker:"CFINRENTAS", yahooTicker:"CFINRENTAS", name:"Independencia Adm. Gral. S.A.", shares:282,    buyPrice:1417,    price:2224,   value:627168,   pct:2.6,  ret:57.0,  div:25380,   firstBuy:"2025-01-09" },
-  { ticker:"EMBONOR-B",  yahooTicker:"EMBONOR-B",  name:"Coca-Cola Embonor S.A.",         shares:168,    buyPrice:1184,    price:1642,   value:275856,   pct:1.1,  ret:38.7,  div:18144,   firstBuy:"2024-10-16" },
+  { ticker:"ILC",        yahooTicker:"ILC",        name:"Inv. La Construcción S.A.",      shares:280,    buyPrice:7663,    price:22350, value:6258000,  pct:25.2, ret:191.7, div:408800,  firstBuy:"2024-07-02" },
+  { ticker:"COLBUN",     yahooTicker:"COLBUN",     name:"Colbún S.A.",                    shares:43947,  buyPrice:122.59,  price:134,   value:5888898,  pct:23.7, ret:9.3,   div:553561,  firstBuy:"2024-04-09" },
+  { ticker:"LIPIGAS",    yahooTicker:"LIPIGAS",    name:"Empresas Lipigas S.A.",           shares:375,    buyPrice:2691,    price:8339,  value:3127125,  pct:12.6, ret:209.9, div:412500,  firstBuy:"2023-08-31" },
+  { ticker:"INVERCAP",   yahooTicker:"INVERCAP",   name:"Invercap S.A.",                   shares:1046,   buyPrice:1909,    price:1966,  value:2056636,  pct:8.3,  ret:3.0,   div:0,       firstBuy:"2024-01-05" },
+  { ticker:"NUAM",       yahooTicker:"NUAM",       name:"Holding Bursátil Regional S.A.", shares:400,    buyPrice:4082,    price:5020,  value:2008000,  pct:8.1,  ret:23.0,  div:222446,  firstBuy:"2024-03-25" },
+  { ticker:"HABITAT",    yahooTicker:"HABITAT",    name:"AFP Habitat S.A.",               shares:1299,   buyPrice:1036,    price:1364,  value:1771836,  pct:7.1,  ret:31.7,  div:170230,  firstBuy:"2024-10-21" },
+  { ticker:"BICECORP",   yahooTicker:"BICE",       name:"Bicecorp S.A.",                  shares:3894,   buyPrice:276.43,  price:386,   value:1503084,  pct:6.0,  ret:39.6,  div:128308,  firstBuy:"2025-03-04" },
+  { ticker:"QUINENCO",   yahooTicker:"QUINENCO",   name:"Quiñenco S.A.",                  shares:150,    buyPrice:4176,    price:4100,  value:615000,   pct:2.5,  ret:-1.8,  div:36300,   firstBuy:"2026-02-16" },
+  { ticker:"CFINRENTAS", yahooTicker:"CFINRENTAS", name:"Independencia Adm. Gral. S.A.", shares:282,    buyPrice:1417,    price:2224,  value:627168,   pct:2.5,  ret:57.0,  div:25380,   firstBuy:"2025-01-09" },
+  { ticker:"ITAUCL",     yahooTicker:"ITAUCL",     name:"Banco Itaú Chile S.A.",          shares:16,     buyPrice:18336,   price:17650, value:282400,   pct:1.1,  ret:-3.7,  div:0,       firstBuy:"2026-05-07" },
+  { ticker:"EMBONOR-B",  yahooTicker:"EMBONOR-B",  name:"Coca-Cola Embonor S.A.",         shares:168,    buyPrice:1184,    price:1642,  value:275856,   pct:1.1,  ret:38.7,  div:29400,   firstBuy:"2024-10-16" },
+  { ticker:"SOQUICOM",   yahooTicker:"SOQUICOM",   name:"Soquicom S.A.",                  shares:672,    buyPrice:372,     price:379,   value:254688,   pct:1.0,  ret:1.9,   div:16952,   firstBuy:"2026-02-10" },
+  { ticker:"ENELGXCH",   yahooTicker:"ENELGXCH",   name:"Enel Generación Chile S.A.",     shares:353,    buyPrice:566,     price:528,   value:186384,   pct:0.7,  ret:-6.7,  div:12291,   firstBuy:"2026-05-07" },
 ];
 
 // ── TRANSACCIONES — datos exactos del CSV exportado desde la plataforma ───────
 // Precio = precio por acción del CSV · Monto = Valor neto de transacción
 const transactions = [
+  // ── Dividendos mayo 2026 ─────────────────────────────────────────────────────
+  { date:"2026-05-28", tipo:"Dividendo", ticker:"ILC",       name:"Inv. La Construcción S.A.",      shares:280,  unitPrice:null, amount:239962 },
+  { date:"2026-05-28", tipo:"Dividendo", ticker:"ILC",       name:"Inv. La Construcción S.A.",      shares:280,  unitPrice:null, amount:838 },
+  { date:"2026-05-19", tipo:"Dividendo", ticker:"EMBONOR-B", name:"Coca-Cola Embonor S.A.",         shares:168,  unitPrice:null, amount:8894 },
+  { date:"2026-05-19", tipo:"Dividendo", ticker:"EMBONOR-B", name:"Coca-Cola Embonor S.A.",         shares:168,  unitPrice:null, amount:2362 },
+  { date:"2026-05-15", tipo:"Dividendo", ticker:"HABITAT",   name:"AFP Habitat S.A.",               shares:1299, unitPrice:null, amount:77940 },
+  { date:"2026-05-15", tipo:"Dividendo", ticker:"ENELGXCH",  name:"Enel Generación Chile S.A.",     shares:353,  unitPrice:null, amount:12291 },
+  { date:"2026-05-15", tipo:"Dividendo", ticker:"COLBUN",    name:"Colbún S.A.",                   shares:43947,unitPrice:null, amount:35198 },
+  { date:"2026-05-15", tipo:"Dividendo", ticker:"SOQUICOM",  name:"Soquicom S.A.",                 shares:672,  unitPrice:null, amount:16952 },
+  { date:"2026-05-15", tipo:"Dividendo", ticker:"QUINENCO",  name:"Quiñenco S.A.",                 shares:150,  unitPrice:null, amount:29788 },
+  { date:"2026-05-15", tipo:"Dividendo", ticker:"QUINENCO",  name:"Quiñenco S.A.",                 shares:150,  unitPrice:null, amount:6512 },
+  { date:"2026-05-14", tipo:"Dividendo", ticker:"BICECORP",  name:"Bicecorp S.A.",                 shares:3894, unitPrice:null, amount:24397 },
+  { date:"2026-05-14", tipo:"Dividendo", ticker:"BICECORP",  name:"Bicecorp S.A.",                 shares:3894, unitPrice:null, amount:16296 },
+  { date:"2026-05-07", tipo:"Dividendo", ticker:"NUAM",      name:"Holding Bursátil Regional S.A.",shares:400,  unitPrice:null, amount:57038 },
+  { date:"2026-05-07", tipo:"Dividendo", ticker:"NUAM",      name:"Holding Bursátil Regional S.A.",shares:400,  unitPrice:null, amount:42780 },
+  { date:"2026-05-07", tipo:"Dividendo", ticker:"LIPIGAS",   name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null, amount:44250 },
+  // ── Facturas ITAU 2026 ────────────────────────────────────────────────────────
+  { date:"2026-05-11", tipo:"Compra",    ticker:"QUINENCO",   name:"Quiñenco S.A.",                 shares:46,   unitPrice:4000,     amount:-184328 },
+  { date:"2026-05-07", tipo:"Compra",    ticker:"ITAUCL",     name:"Banco Itaú Chile S.A.",          shares:16,   unitPrice:18303,    amount:-293370 },
+  { date:"2026-05-07", tipo:"Compra",    ticker:"ENELGXCH",   name:"Enel Generación Chile S.A.",     shares:353,  unitPrice:565,      amount:-199800 },
+  { date:"2026-03-09", tipo:"Compra",    ticker:"QUINENCO",   name:"Quiñenco S.A.",                 shares:47,   unitPrice:4162,     amount:-195941 },
+  { date:"2026-03-09", tipo:"Compra",    ticker:"HABITAT",    name:"AFP Habitat S.A.",              shares:145,  unitPrice:1370,     amount:-199004 },
+  { date:"2026-03-31", tipo:"Dividendo", ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",         shares:375,  unitPrice:null,     amount:35625 },
+  { date:"2026-02-16", tipo:"Compra",    ticker:"QUINENCO",   name:"Quiñenco S.A.",                 shares:57,   unitPrice:4310,     amount:-246109 },
+  { date:"2026-02-16", tipo:"Compra",    ticker:"NUAM",       name:"Holding Bursátil Regional S.A.",shares:19,   unitPrice:5011,     amount:-95379 },
+  { date:"2026-02-16", tipo:"Compra",    ticker:"HABITAT",    name:"AFP Habitat S.A.",              shares:143,  unitPrice:1389,     amount:-198982 },
+  { date:"2026-02-10", tipo:"Compra",    ticker:"SOQUICOM",   name:"Soquicom S.A.",                 shares:172,  unitPrice:371,      amount:-63926 },
+  { date:"2026-02-10", tipo:"Compra",    ticker:"SOQUICOM",   name:"Soquicom S.A.",                 shares:500,  unitPrice:371,      amount:-185831 },
+  { date:"2026-02-10", tipo:"Compra",    ticker:"HABITAT",    name:"AFP Habitat S.A.",              shares:172,  unitPrice:1449,     amount:-249672 },
+  { date:"2026-02-09", tipo:"Venta",     ticker:"SQM-B",      name:"SQM (Soc. Química y Minera)",   shares:21,   unitPrice:61752,    amount:1294477 },
+  // ── Historial previo ──────────────────────────────────────────────────────────
   { date:"2026-02-04", tipo:"Retirada",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:-2000000 },
   { date:"2025-12-26", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:57375 },
   { date:"2025-12-23", tipo:"Dividendo",  ticker:"CFINRENTAS", name:"Independencia Adm. Gral. S.A.", shares:282,  unitPrice:null,     amount:4794 },
@@ -361,7 +401,8 @@ const transactions = [
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 const PRICE_KEY   = 'chile_prices_v1';
-const TOTAL_DIV   = 2057605; // dividendos + intereses históricos (constante)
+const TOTAL_DIV   = 2708728; // dividendos + intereses históricos 2023-2026 (inc. mayo 2026)
+const CASH_CLP    = 1388543; // efectivo disponible cuenta ITAU BCS
 
 function fmtCLP(n, dec = 0) {
   if (n === null || n === undefined) return '—';
@@ -506,13 +547,14 @@ function updateAll() {
   portfolio.forEach(p => { p.pct = parseFloat((p.value / totalEquity * 100).toFixed(1)); });
 
   // Cards
-  const cost    = portfolio.reduce((s, p) => s + p.buyPrice * p.shares, 0);
-  const gain    = totalEquity - cost;
-  const gainPct = gain / cost * 100;
-  const gainSign = gain >= 0 ? '+' : '';
-  const divRet  = (gain + TOTAL_DIV) / cost * 100;
+  const cost      = portfolio.reduce((s, p) => s + p.buyPrice * p.shares, 0);
+  const totalCash = totalEquity + CASH_CLP;
+  const gain      = totalEquity - cost;
+  const gainPct   = gain / cost * 100;
+  const gainSign  = gain >= 0 ? '+' : '';
+  const divRet    = (gain + TOTAL_DIV) / cost * 100;
 
-  document.getElementById('card-total').textContent = `$${fmtCLP(totalEquity)}`;
+  document.getElementById('card-total').textContent = `$${fmtCLP(totalCash)}`;
   document.getElementById('card-ret').textContent   = `${gainSign}${gainPct.toFixed(1)}%`;
   document.getElementById('card-ret').className     = 'value ' + (gain >= 0 ? 'green' : 'red');
   document.getElementById('card-ret-sub').textContent = `${gainSign}$${fmtCLP(Math.abs(gain))} sobre costo`;
