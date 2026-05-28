@@ -244,6 +244,15 @@
   <div class="section-title" style="margin-bottom:12px">Rendimiento por año</div>
   <div class="yearly-grid" id="yearly-grid"></div>
 
+  <!-- HISTORY CHART -->
+  <div class="chart-card" style="margin-bottom:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="section-title" style="margin:0">Evolución del portafolio</div>
+      <span id="history-live-tag" style="font-size:11px;color:var(--muted)">precios snapshot 24-may-2026</span>
+    </div>
+    <div class="chart-wrap" style="height:260px"><canvas id="chartHistory"></canvas></div>
+  </div>
+
   <!-- CHARTS -->
   <div class="charts-row">
     <div class="chart-card">
@@ -607,6 +616,15 @@ async function fetchLivePrices() {
   document.getElementById('total-return-sub').textContent = `${gainSign}$${fmt(Math.abs(gain), 0)} sobre costo`;
   if (liveCount > 0)
     document.getElementById('total-value-sub').textContent = `${liveCount} precios live · ${portfolio.length} posiciones`;
+
+  // Actualizar último punto del gráfico de evolución con valor live
+  if (typeof chartHistory !== 'undefined' && chartHistory && equity > 0) {
+    const ds = chartHistory.data.datasets[0];
+    ds.data[ds.data.length - 1] = equity;
+    chartHistory.update('none');
+    const tag = document.getElementById('history-live-tag');
+    if (tag) tag.innerHTML = `<span style="color:var(--green)">● LIVE</span> · ${liveCount} de ${portfolio.length} precios`;
+  }
 
   // % portafolio por fila
   for (const p of portfolio) {
@@ -1040,6 +1058,82 @@ const yearlyPerf = [
         <div class="year-note">Posiciones: ${d.positions}<br>${d.note}</div>
       </div>`;
   }).join('');
+})();
+
+// ── GRÁFICO DE EVOLUCIÓN ──────────────────────────────────────────────────────
+// Puntos históricos estimados con precios de cierre de cada período.
+// El último punto (mayo 2026) se actualiza automáticamente con precios live.
+const portfolioHistory = [
+  { label: 'Jul 2023',  value:   605 },  // primera compra: DIS
+  { label: 'Dic 2023',  value:   649 },  // DIS fin de año
+  { label: 'Abr 2024',  value:  1050 },  // DIS vendida → AAPL
+  { label: 'Sep 2024',  value:  2800 },  // GOOGL + CELH + depósitos
+  { label: 'Dic 2024',  value:  4487 },  // cierre 2024
+  { label: 'Mar 2025',  value:  8800 },  // acumulación GOOGL + depósitos fuertes
+  { label: 'Jun 2025',  value: 12500 },  // ASTS iniciado, CELH cerrada
+  { label: 'Sep 2025',  value: 16500 },  // UNH, CNC, NAGARRO + ASTS apreciado
+  { label: 'Dic 2025',  value: 21056 },  // cierre 2025
+  { label: 'Feb 2026',  value: 24500 },  // NIO, MSTR, Strive, IIPR
+  { label: 'Mar 2026',  value: 28000 },  // TROW, MSFT, NKE + depósitos
+  { label: 'May 2026',  value: 41604 },  // ← se actualiza con precios live
+];
+
+let chartHistory;
+(function buildHistoryChart() {
+  const canvas = document.getElementById('chartHistory');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  const grad = ctx.createLinearGradient(0, 0, 0, 260);
+  grad.addColorStop(0, 'rgba(99,179,237,0.35)');
+  grad.addColorStop(1, 'rgba(99,179,237,0.02)');
+
+  chartHistory = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: portfolioHistory.map(d => d.label),
+      datasets: [{
+        label: 'Portafolio',
+        data: portfolioHistory.map(d => d.value),
+        borderColor: '#63b3ed',
+        backgroundColor: grad,
+        borderWidth: 2.5,
+        pointRadius: portfolioHistory.map((_, i) => i === portfolioHistory.length - 1 ? 6 : 4),
+        pointBackgroundColor: portfolioHistory.map((_, i) => i === portfolioHistory.length - 1 ? '#22c55e' : '#63b3ed'),
+        pointBorderColor: '#1a1d2e',
+        pointBorderWidth: 2,
+        fill: true,
+        tension: 0.38,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: c => ` $${Math.round(c.parsed.y).toLocaleString('en-US')}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#7a7f99', font: { size: 10 }, maxRotation: 30 }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: {
+            color: '#7a7f99',
+            font: { size: 10 },
+            callback: v => v >= 1000 ? '$' + (v / 1000).toFixed(0) + 'k' : '$' + v
+          }
+        }
+      }
+    }
+  });
 })();
 
 // ── CHARTS ────────────────────────────────────────────────────────────────────
