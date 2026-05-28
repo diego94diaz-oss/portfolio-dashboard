@@ -84,6 +84,19 @@
     .table-search { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; color: var(--text); font-size: 12px; width: 220px; outline: none; }
     .table-search:focus { border-color: var(--blue); }
 
+    /* Price bar */
+    .price-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 28px; display: flex; align-items: center; gap: 12px; font-size: 13px; flex-wrap: wrap; }
+    .price-bar input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; color: var(--text); font-size: 12px; flex: 1; min-width: 300px; outline: none; font-family: monospace; }
+    .price-bar input:focus { border-color: var(--blue); }
+    .price-bar button { background: var(--blue); border: none; border-radius: 6px; padding: 6px 16px; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .price-bar button:hover { opacity: .85; }
+    .price-bar .status { font-size: 11px; color: var(--muted); }
+
+    /* Editable price input in table */
+    .price-cell { background: transparent; border: 1px solid transparent; border-radius: 5px; color: var(--text); font-size: 13px; font-family: inherit; text-align: left; padding: 2px 6px; width: 100px; cursor: text; transition: border-color .15s; }
+    .price-cell:hover { border-color: var(--border); }
+    .price-cell:focus { border-color: var(--blue); background: var(--surface2); outline: none; }
+
     footer { text-align: center; padding: 24px; color: var(--muted); font-size: 11px; }
   </style>
 </head>
@@ -101,28 +114,30 @@
   <a class="nav-link active" href="chile.html">🇨🇱 Portfolio CLP</a>
 </nav>
 
-<div class="main">
+<div class="price-bar">
+  <span style="color:var(--muted);white-space:nowrap">Precios BCS (CLP):</span>
+  <input id="price-input" placeholder="COLBUN:112 ILC:8500 INVERCAP:1800 NUAM:3800 BICECORP:290 LIPIGAS:2900 HABITAT:760 SQM-B:30000 CFINRENTAS:1380 EMBONOR-B:1300" />
+  <button onclick="applyPrices()">Actualizar</button>
+  <span class="status" id="price-status">Ingresá los precios actuales de la BCS · También podés editar cada celda directamente</span>
+</div>
 
-  <!-- NOTE -->
-  <div class="note-bar">
-    ℹ️ Los precios actuales son estimaciones al 28-may-2026. Los tickers de la Bolsa de Santiago (.SN) no están disponibles en Finnhub free tier — actualizá los precios manualmente en el array <code>portfolio</code> del código fuente.
-  </div>
+<div class="main">
 
   <!-- SUMMARY CARDS -->
   <div class="cards">
     <div class="card">
       <div class="label">Valor total</div>
-      <div class="value" id="total-value">$14.856.465</div>
-      <div class="sub" id="total-value-sub">10 posiciones · sin efectivo</div>
+      <div class="value" id="card-total">—</div>
+      <div class="sub" id="card-total-sub">10 posiciones</div>
     </div>
     <div class="card">
       <div class="label">Retorno total</div>
-      <div class="value red" id="total-return">−3.3%</div>
-      <div class="sub" id="total-return-sub">−$503.047 sobre costo</div>
+      <div class="value" id="card-ret">—</div>
+      <div class="sub" id="card-ret-sub">sobre costo</div>
     </div>
     <div class="card">
       <div class="label">Costo total</div>
-      <div class="value">$15.359.512</div>
+      <div class="value" id="card-cost">—</div>
       <div class="sub">Capital invertido en posiciones activas</div>
     </div>
     <div class="card">
@@ -132,8 +147,8 @@
     </div>
     <div class="card">
       <div class="label">Retorno incl. dividendos</div>
-      <div class="value green">+10.1%</div>
-      <div class="sub">+$1.554.558 sobre costo</div>
+      <div class="value" id="card-ret-div">—</div>
+      <div class="sub" id="card-ret-div-sub">sobre costo</div>
     </div>
   </div>
 
@@ -340,29 +355,122 @@ const transactions = [
 ];
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
+const PRICE_KEY   = 'chile_prices_v1';
+const TOTAL_DIV   = 2057605; // dividendos + intereses históricos (constante)
+
 function fmtCLP(n, dec = 0) {
   if (n === null || n === undefined) return '—';
-  return Math.round(n).toLocaleString('es-CL', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  return Number(n).toLocaleString('es-CL', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+function parseCLPInput(str) {
+  // Acepta "1.234,56" (es-CL) o "1234.56" (en-US) o "1234"
+  return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+}
+
+// ── CARGA DE PRECIOS GUARDADOS ────────────────────────────────────────────────
+(function loadSavedPrices() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PRICE_KEY) || '{}');
+    portfolio.forEach(p => {
+      if (saved[p.ticker] > 0) p.price = saved[p.ticker];
+    });
+  } catch {}
+})();
+
+// ── PRECIO DESDE CELDA EDITABLE ──────────────────────────────────────────────
+function priceChanged(ticker, val) {
+  const n = parseCLPInput(val);
+  if (!isFinite(n) || n <= 0) return;
+  const p = portfolio.find(x => x.ticker === ticker);
+  if (!p) return;
+  p.price = n;
+  const saved = JSON.parse(localStorage.getItem(PRICE_KEY) || '{}');
+  saved[ticker] = n;
+  localStorage.setItem(PRICE_KEY, JSON.stringify(saved));
+  updateAll();
+}
+
+// ── PRECIO DESDE BARRA SUPERIOR ──────────────────────────────────────────────
+function applyPrices() {
+  const raw = document.getElementById('price-input').value.trim();
+  if (!raw) return;
+  let updated = 0;
+  const saved = JSON.parse(localStorage.getItem(PRICE_KEY) || '{}');
+  // Formato: TICKER:precio (separado por espacios o comas)
+  raw.split(/[\s,]+/).forEach(token => {
+    const [tk, priceStr] = token.split(':');
+    if (!tk || !priceStr) return;
+    const n = parseCLPInput(priceStr);
+    if (!isFinite(n) || n <= 0) return;
+    const p = portfolio.find(x => x.ticker.toUpperCase() === tk.toUpperCase());
+    if (!p) return;
+    p.price = n;
+    saved[p.ticker] = n;
+    updated++;
+  });
+  localStorage.setItem(PRICE_KEY, JSON.stringify(saved));
+  const st = document.getElementById('price-status');
+  if (st) st.textContent = `✓ ${updated} precio${updated !== 1 ? 's' : ''} actualizado${updated !== 1 ? 's' : ''} · ${new Date().toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'})}`;
+  document.getElementById('price-input').value = '';
+  updateAll();
+}
+
+// ── UPDATE ALL ────────────────────────────────────────────────────────────────
+function updateAll() {
+  // Recalcular valores derivados
+  portfolio.forEach(p => {
+    p.value = Math.round(p.shares * p.price);
+    p.ret   = parseFloat(((p.price - p.buyPrice) / p.buyPrice * 100).toFixed(1));
+  });
+  const totalEquity = portfolio.reduce((s, p) => s + p.value, 0);
+  portfolio.forEach(p => { p.pct = parseFloat((p.value / totalEquity * 100).toFixed(1)); });
+
+  // Cards
+  const cost    = portfolio.reduce((s, p) => s + p.buyPrice * p.shares, 0);
+  const gain    = totalEquity - cost;
+  const gainPct = gain / cost * 100;
+  const gainSign = gain >= 0 ? '+' : '';
+  const divRet  = (gain + TOTAL_DIV) / cost * 100;
+
+  document.getElementById('card-total').textContent = `$${fmtCLP(totalEquity)}`;
+  document.getElementById('card-ret').textContent   = `${gainSign}${gainPct.toFixed(1)}%`;
+  document.getElementById('card-ret').className     = 'value ' + (gain >= 0 ? 'green' : 'red');
+  document.getElementById('card-ret-sub').textContent = `${gainSign}$${fmtCLP(Math.abs(gain))} sobre costo`;
+  document.getElementById('card-cost').textContent  = `$${fmtCLP(cost)}`;
+  document.getElementById('card-ret-div').textContent = `${divRet >= 0 ? '+' : ''}${divRet.toFixed(1)}%`;
+  document.getElementById('card-ret-div').className   = 'value ' + (divRet >= 0 ? 'green' : 'red');
+  document.getElementById('card-ret-div-sub').textContent = `+$${fmtCLP(gain + TOTAL_DIV)} sobre costo`;
+
+  // Alertas
+  const alertsBar = document.getElementById('alerts-bar');
+  if (alertsBar) {
+    const over = portfolio.filter(p => p.pct > 20);
+    alertsBar.innerHTML = over.map(p =>
+      `<div class="alert">⚠️ <span>${p.ticker}</span> — ${p.pct.toFixed(1)}% del portafolio (umbral: 20%)</div>`
+    ).join('');
+  }
+
+  renderTable();
+  updateCharts(totalEquity);
 }
 
 // ── TABLA ─────────────────────────────────────────────────────────────────────
 let sortCol = 'value', sortDir = -1;
-const totalEquity = portfolio.reduce((s, p) => s + p.value, 0);
 
 function sortTable(col) {
   if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
   document.querySelectorAll('th.sortable').forEach(th => {
     th.classList.remove('sort-asc', 'sort-desc');
-    if (th.textContent.trim().toLowerCase().startsWith(col.toLowerCase()) ||
-        th.getAttribute('onclick') === `sortTable('${col}')`) {
+    if (th.getAttribute('onclick') === `sortTable('${col}')`)
       th.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
-    }
   });
   renderTable();
 }
 
 function renderTable() {
   const search = (document.getElementById('ticker-search').value || '').toLowerCase();
+  const totalEquity = portfolio.reduce((s, p) => s + p.value, 0);
   let visible = portfolio.filter(p =>
     !search || p.ticker.toLowerCase().includes(search) || p.name.toLowerCase().includes(search)
   );
@@ -377,18 +485,23 @@ function renderTable() {
     pb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:20px">Sin resultados</td></tr>';
     return;
   }
+  const pct20 = p => p.value / totalEquity * 100 > 20;
   pb.innerHTML = '';
   visible.forEach(p => {
     const rc = p.ret >= 0 ? 'green' : 'red';
     const rs = p.ret >= 0 ? '+' : '';
+    const dec = p.price < 10 ? 2 : 0;
     const divTxt = p.div > 0 ? `$${fmtCLP(p.div)}` : '<span style="color:var(--muted)">—</span>';
     pb.innerHTML += `
       <tr>
-        <td><strong>${p.ticker}</strong>${p.alert ? ' ⚠️' : ''}</td>
+        <td><strong>${p.ticker}</strong>${pct20(p) ? ' ⚠️' : ''}</td>
         <td style="color:var(--muted)">${p.name}</td>
         <td>${fmtCLP(p.shares)}</td>
         <td>$${fmtCLP(p.buyPrice, p.buyPrice < 10 ? 2 : 0)}</td>
-        <td>$${fmtCLP(p.price, p.price < 10 ? 2 : 0)}</td>
+        <td><input class="price-cell" value="${p.price.toFixed(dec)}"
+             onchange="priceChanged('${p.ticker}', this.value)"
+             onkeydown="if(event.key==='Enter')this.blur()"
+             title="Editá el precio actual en CLP" /></td>
         <td><strong>$${fmtCLP(p.value)}</strong></td>
         <td>${p.pct.toFixed(1)}%</td>
         <td class="${rc}">${rs}${p.ret.toFixed(1)}%</td>
@@ -397,8 +510,6 @@ function renderTable() {
       </tr>`;
   });
 }
-
-renderTable();
 
 // ── TRANSACCIONES ─────────────────────────────────────────────────────────────
 const tb = document.getElementById('tx-body');
@@ -420,7 +531,7 @@ transactions.forEach(t => {
       <td><strong>${t.ticker}</strong></td>
       <td style="color:var(--muted)">${t.name}</td>
       <td>${t.shares !== null ? fmtCLP(t.shares) : '—'}</td>
-      <td>${t.unitPrice !== null ? '$' + fmtCLP(t.unitPrice, t.unitPrice < 10 ? 2 : 0) : '—'}</td>
+      <td>${t.unitPrice !== null ? '$' + fmtCLP(t.unitPrice, t.unitPrice < 100 ? 2 : 0) : '—'}</td>
       <td style="${amtColor};font-weight:600">${sign}$${fmtCLP(Math.abs(t.amount))}</td>
     </tr>`;
 });
@@ -435,58 +546,78 @@ const palette = [
   '#f59e0b','#06b6d4','#ec4899','#84cc16','#f97316',
 ];
 
-// Donut
-new Chart(document.getElementById('chartDonut'), {
-  type: 'doughnut',
-  data: {
-    labels: portfolio.map(p => p.ticker),
-    datasets: [{ data: portfolio.map(p => p.value), backgroundColor: palette, borderWidth: 2, borderColor: '#1a1d27' }]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false, cutout: '62%',
-    plugins: {
-      legend: {
-        position: 'right',
-        labels: {
-          boxWidth: 12, padding: 8, font: { size: 10 },
-          generateLabels: chart => {
-            const ds = chart.data.datasets[0];
-            return chart.data.labels.map((label, i) => ({
-              text: `${label}  $${fmtCLP(ds.data[i])}  ${((ds.data[i] / totalEquity) * 100).toFixed(1)}%`,
-              fillStyle: ds.backgroundColor[i], strokeStyle: ds.backgroundColor[i],
-              fontColor: '#e8eaf0', color: '#e8eaf0', lineWidth: 0, index: i
-            }));
-          }
-        }
-      },
-      tooltip: { callbacks: { label: ctx => ` $${fmtCLP(ctx.parsed)} (${((ctx.parsed / totalEquity) * 100).toFixed(1)}%)` } }
-    }
-  }
-});
+let chartDonut, chartCost;
 
-// Cost vs Market
-const sorted = [...portfolio].sort((a, b) => b.value - a.value);
-new Chart(document.getElementById('chartCost'), {
-  type: 'bar',
-  data: {
-    labels: sorted.map(p => p.ticker),
-    datasets: [
-      { label: 'Valor mercado', data: sorted.map(p => p.value),                    backgroundColor: '#6366f1bb', borderColor: '#6366f1', borderWidth: 1, borderRadius: 4 },
-      { label: 'Costo',         data: sorted.map(p => Math.round(p.buyPrice * p.shares)), backgroundColor: '#3b82f6bb', borderColor: '#3b82f6', borderWidth: 1, borderRadius: 4 },
-    ]
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    plugins: {
-      legend: { labels: { boxWidth: 12, font: { size: 11 } } },
-      tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: $${fmtCLP(ctx.parsed.y)}` } }
+function buildCharts(totalEquity) {
+  const sortedP = [...portfolio].sort((a, b) => b.value - a.value);
+  chartDonut = new Chart(document.getElementById('chartDonut'), {
+    type: 'doughnut',
+    data: {
+      labels: portfolio.map(p => p.ticker),
+      datasets: [{ data: portfolio.map(p => p.value), backgroundColor: palette, borderWidth: 2, borderColor: '#1a1d27' }]
     },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-      y: { grid: { color: '#2e3248' }, ticks: { callback: v => '$' + (v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } }
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            boxWidth: 12, padding: 8, font: { size: 10 },
+            generateLabels: chart => {
+              const ds = chart.data.datasets[0];
+              const tot = ds.data.reduce((a, b) => a + b, 0);
+              return chart.data.labels.map((label, i) => ({
+                text: `${label}  $${fmtCLP(ds.data[i])}  ${((ds.data[i] / tot) * 100).toFixed(1)}%`,
+                fillStyle: ds.backgroundColor[i], strokeStyle: ds.backgroundColor[i],
+                fontColor: '#e8eaf0', color: '#e8eaf0', lineWidth: 0, index: i
+              }));
+            }
+          }
+        },
+        tooltip: { callbacks: { label: ctx => {
+          const tot = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+          return ` $${fmtCLP(ctx.parsed)} (${((ctx.parsed / tot) * 100).toFixed(1)}%)`;
+        }}}
+      }
     }
-  }
-});
+  });
+
+  chartCost = new Chart(document.getElementById('chartCost'), {
+    type: 'bar',
+    data: {
+      labels: sortedP.map(p => p.ticker),
+      datasets: [
+        { label: 'Valor mercado', data: sortedP.map(p => p.value),                    backgroundColor: '#6366f1bb', borderColor: '#6366f1', borderWidth: 1, borderRadius: 4 },
+        { label: 'Costo',         data: sortedP.map(p => Math.round(p.buyPrice * p.shares)), backgroundColor: '#3b82f6bb', borderColor: '#3b82f6', borderWidth: 1, borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: $${fmtCLP(ctx.parsed.y)}` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: '#2e3248' }, ticks: { callback: v => '$' + (v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } }
+      }
+    }
+  });
+}
+
+function updateCharts(totalEquity) {
+  if (!chartDonut || !chartCost) return;
+  const sortedP = [...portfolio].sort((a, b) => b.value - a.value);
+  chartDonut.data.datasets[0].data = portfolio.map(p => p.value);
+  chartDonut.update('none');
+  chartCost.data.labels            = sortedP.map(p => p.ticker);
+  chartCost.data.datasets[0].data  = sortedP.map(p => p.value);
+  chartCost.update('none');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+updateAll();
+buildCharts(portfolio.reduce((s, p) => s + p.value, 0));
 </script>
 </body>
 </html>
