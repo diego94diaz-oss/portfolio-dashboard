@@ -196,13 +196,13 @@
   <div class="cards">
     <div class="card">
       <div class="label">Valor total</div>
-      <div class="value">$44,401</div>
-      <div class="sub">19 posiciones + efectivo</div>
+      <div class="value" id="total-value">$44,401</div>
+      <div class="sub" id="total-value-sub">19 posiciones + efectivo</div>
     </div>
     <div class="card">
       <div class="label">Retorno total</div>
-      <div class="value green">+58.7%</div>
-      <div class="sub">+$15,895 sobre costo</div>
+      <div class="value green" id="total-return">+58.7%</div>
+      <div class="sub" id="total-return-sub">+$15,895 sobre costo</div>
     </div>
     <div class="card">
       <div class="label">Costo total</div>
@@ -467,6 +467,9 @@ const SKIP_TICKERS = new Set(['ASST-VRS', 'MSTR-VRS']);
 // Cache de datos live para re-aplicar al filtrar/ordenar
 const liveCache = {};
 
+// Mapa simple ticker → precio live (número puro, sin objetos)
+const livePx = {};
+
 function getApiKey() {
   return document.getElementById('api-key-input').value.trim()
       || localStorage.getItem(STORAGE_KEY) || '';
@@ -524,8 +527,8 @@ async function fetchLivePrices() {
     liveCache[p.ticker] = data;
     applyLiveCell(p.ticker, data);
     if (data) ok++;
-    // Pausa de 120ms entre llamadas (≈8 req/seg, dentro del límite free)
-    await new Promise(r => setTimeout(r, 120));
+    // Pausa de 1100ms entre llamadas (plan gratuito Finnhub: 60 req/min)
+    await new Promise(r => setTimeout(r, 1100));
   }
 
   const now = new Date().toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
@@ -533,23 +536,63 @@ async function fetchLivePrices() {
     ? `✓ ${ok} precios actualizados — ${now}`
     : '⚠ Sin datos — verificá la API key';
 
-  // Actualizar card de variación del día
+  // ── Calcular totales usando liveCache (mismo patrón que variación del día) ──
   let totalDayChg = 0, coveredValue = 0;
+  let equity = 0, liveCount = 0;
+
   for (const p of portfolio) {
-    const d = liveCache[p.ticker];
+    const d  = liveCache[p.ticker];
+    const px = d ? d.c : null;   // precio live (número) o null
+
+    // Variación del día
     if (d && d.d != null) {
       totalDayChg  += p.shares * d.d;
       coveredValue += p.value;
     }
+
+    // Valor total: usar precio live si existe, sino precio anterior
+    if (px) {
+      equity += p.shares * px;
+      liveCount++;
+      // Actualizar celda Valor en la tabla
+      const valCell = document.getElementById(`val-${p.ticker}`);
+      if (valCell) valCell.innerHTML = `<strong>$${fmt(p.shares * px, 0)}</strong>`;
+    } else {
+      equity += p.value;
+    }
   }
+
+  // Card variación del día
   const dayValEl = document.getElementById('day-chg-value');
   const daySubEl = document.getElementById('day-chg-sub');
   if (dayValEl && coveredValue > 0) {
     const sign = totalDayChg >= 0 ? '+' : '';
     const pct  = (totalDayChg / coveredValue) * 100;
-    dayValEl.className = 'value ' + (totalDayChg >= 0 ? 'green' : 'red');
+    dayValEl.className   = 'value ' + (totalDayChg >= 0 ? 'green' : 'red');
     dayValEl.textContent = `${sign}$${fmt(Math.abs(totalDayChg), 0)}`;
     daySubEl.textContent = `${sign}${pct.toFixed(2)}% sobre el portafolio`;
+  }
+
+  // Card valor total
+  const total    = equity + CASH;
+  const cost     = portfolio.reduce((s, p) => s + p.buyPrice * p.shares, 0);
+  const gain     = equity - cost;
+  const gainPct  = (gain / cost) * 100;
+  const gainSign = gain >= 0 ? '+' : '';
+  document.getElementById('total-value').textContent      = `$${fmt(total, 0)}`;
+  document.getElementById('total-return').textContent     = `${gainSign}${gainPct.toFixed(1)}%`;
+  document.getElementById('total-return').className       = 'value ' + (gain >= 0 ? 'green' : 'red');
+  document.getElementById('total-return-sub').textContent = `${gainSign}$${fmt(Math.abs(gain), 0)} sobre costo`;
+  if (liveCount > 0)
+    document.getElementById('total-value-sub').textContent = `${liveCount} precios live · ${portfolio.length} posiciones`;
+
+  // % portafolio por fila
+  for (const p of portfolio) {
+    const d  = liveCache[p.ticker];
+    const px = d ? d.c : null;
+    const v  = px ? p.shares * px : p.value;
+    const el = document.getElementById(`pct-${p.ticker}`);
+    if (el) el.textContent = `${(v / total * 100).toFixed(1)}%`;
   }
 }
 
@@ -576,26 +619,64 @@ function closeModal(e) {
   }
 }
 
+function updateTotalCard() {
+  let equity = 0, liveCount = 0;
+  portfolio.forEach(p => {
+    const px = livePx[p.ticker];   // número puro: precio live o undefined
+    if (px) { equity += p.shares * px; liveCount++; }
+    else      { equity += p.value; }
+  });
+
+  const total    = equity + CASH;
+  const cost     = portfolio.reduce((s, p) => s + p.buyPrice * p.shares, 0);
+  const gain     = equity - cost;
+  const gainPct  = (gain / cost) * 100;
+  const gainSign = gain >= 0 ? '+' : '';
+
+  document.getElementById('total-value').textContent      = `$${fmt(total, 0)}`;
+  document.getElementById('total-return').textContent     = `${gainSign}${gainPct.toFixed(1)}%`;
+  document.getElementById('total-return').className       = 'value ' + (gain >= 0 ? 'green' : 'red');
+  document.getElementById('total-return-sub').textContent = `${gainSign}$${fmt(Math.abs(gain), 0)} sobre costo`;
+  if (liveCount > 0)
+    document.getElementById('total-value-sub').textContent = `${liveCount} precios live · ${portfolio.length} posiciones`;
+
+  portfolio.forEach(p => {
+    const px = livePx[p.ticker];
+    const v  = px ? p.shares * px : p.value;
+    const el = document.getElementById(`pct-${p.ticker}`);
+    if (el) el.textContent = `${(v / total * 100).toFixed(1)}%`;
+  });
+}
+
 function applyLiveCell(ticker, data) {
   const lv = document.getElementById(`live-${ticker}`);
   const ch = document.getElementById(`chg-${ticker}`);
-  if (!lv && !ch) return;
+
   if (!data) {
     const dash = '<span style="color:var(--muted);font-size:11px">—</span>';
     if (lv) lv.innerHTML = dash;
     if (ch) ch.innerHTML = dash;
-    return;
+  } else {
+    const chgPct = data.dp ?? 0;
+    const chgAmt = data.d  ?? 0;
+    const color  = chgPct >= 0 ? 'var(--green)' : 'var(--red)';
+    const sign   = chgPct >= 0 ? '+' : '';
+    if (lv) lv.innerHTML = `<span class="live-price">$${fmt(data.c)}</span>`;
+    if (ch) ch.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:1px;line-height:1.3">
+        <span style="color:${color};font-weight:700">${sign}${chgPct.toFixed(2)}%</span>
+        <span style="color:${color};font-size:11px">${sign}$${fmt(Math.abs(chgAmt))}</span>
+      </div>`;
+    // Guardar precio live como número puro
+    livePx[ticker] = data.c;
+    const p = portfolio.find(x => x.ticker === ticker);
+    if (p) {
+      const liveVal = p.shares * data.c;
+      const valCell = document.getElementById(`val-${ticker}`);
+      if (valCell) valCell.innerHTML = `<strong>$${fmt(liveVal, 0)}</strong>`;
+    }
   }
-  const chgPct = data.dp ?? 0;
-  const chgAmt = data.d  ?? 0;
-  const color  = chgPct >= 0 ? 'var(--green)' : 'var(--red)';
-  const sign   = chgPct >= 0 ? '+' : '';
-  if (lv) lv.innerHTML = `<span class="live-price">$${fmt(data.c)}</span>`;
-  if (ch) ch.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:1px;line-height:1.3">
-      <span style="color:${color};font-weight:700">${sign}${chgPct.toFixed(2)}%</span>
-      <span style="color:${color};font-size:11px">${sign}$${fmt(Math.abs(chgAmt))}</span>
-    </div>`;
+
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
@@ -774,8 +855,8 @@ function renderTable() {
         <td id="chg-${p.ticker}"><span class="spinner"></span></td>
         ${targetCell}
         ${upsideCell}
-        <td><strong>$${fmt(p.value, 0)}</strong></td>
-        <td>${(p.value / totalWithCash * 100).toFixed(1)}%</td>
+        <td id="val-${p.ticker}"><strong>$${fmt(p.value, 0)}</strong></td>
+        <td id="pct-${p.ticker}">${(p.value / totalWithCash * 100).toFixed(1)}%</td>
         <td class="${retColor}">${retSign}${p.ret}%</td>
         <td>${badge}</td>
       </tr>`;
@@ -792,6 +873,9 @@ function renderTable() {
 // Portfolio table — render initial state
 buildColPickerMenu();
 renderTable();
+
+// Inicializar cards de resumen con datos estáticos (liveCache vacío → usa p.value)
+updateTotalCard();
 
 // ── RECOMMENDATIONS FILTER & SORT ─────────────────────────────────────────────
 let recsFilter = 'all';
