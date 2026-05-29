@@ -85,6 +85,27 @@
     .table-search { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; color: var(--text); font-size: 12px; width: 220px; outline: none; }
     .table-search:focus { border-color: var(--blue); }
 
+    /* Yearly return section */
+    .yearly-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .yearly-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .yearly-card .year-label { font-size: 22px; font-weight: 800; margin-bottom: 2px; }
+    .yearly-card .year-tag  { font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted); margin-bottom: 12px; }
+    .yearly-card .year-ret  { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .yearly-card .year-row  { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+    .yearly-card .year-row span:last-child { color: var(--text); font-weight: 600; }
+    .yearly-card .year-note { font-size: 10px; color: var(--muted); margin-top: 8px; font-style: italic; }
+    @media (max-width: 900px) { .yearly-grid { grid-template-columns: 1fr 1fr; } }
+
+    /* Heatmap mensual */
+    .heatmap-wrap { overflow-x: auto; }
+    .heatmap-table { border-collapse: separate; border-spacing: 3px; font-size: 12px; white-space: nowrap; }
+    .heatmap-table th { padding: 4px 10px; text-align: center; color: var(--muted); font-size: 11px; font-weight: 600; min-width: 46px; }
+    .heatmap-table th.year-h { text-align: left; min-width: 36px; }
+    .heatmap-table td { padding: 5px 8px; text-align: center; border-radius: 5px; font-weight: 700; font-size: 11px; min-width: 46px; }
+    .heatmap-table td.year-col { color: var(--muted); font-weight: 400; font-size: 11px; text-align: left; background: transparent !important; }
+    .heatmap-table td.hm-empty { background: transparent; }
+    .heatmap-live-cell { outline: 2px solid var(--green); outline-offset: -1px; }
+
     /* Price bar */
     .price-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 28px; display: flex; align-items: center; gap: 12px; font-size: 13px; flex-wrap: wrap; }
     .price-bar input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; color: var(--text); font-size: 12px; flex: 1; min-width: 300px; outline: none; font-family: monospace; }
@@ -192,6 +213,28 @@
     </table>
   </div>
 
+  <!-- YEARLY RETURNS -->
+  <div class="section-title" style="margin-bottom:12px">Rendimiento por año</div>
+  <div class="yearly-grid" id="yearly-grid-clp"></div>
+
+  <!-- HISTORY CHART -->
+  <div class="chart-card" style="margin-bottom:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="section-title" style="margin:0">Evolución del portafolio (CLP)</div>
+      <span id="history-live-tag-clp" style="font-size:11px;color:var(--muted)">precios snapshot 28-may-2026</span>
+    </div>
+    <div class="chart-wrap" style="height:260px"><canvas id="chartHistoryCLP"></canvas></div>
+  </div>
+
+  <!-- HEATMAP MENSUAL -->
+  <div class="chart-card" style="margin-bottom:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="section-title" style="margin:0">Rentabilidad mensual (CLP)</div>
+      <span style="font-size:11px;color:var(--muted)">Simple Dietz estimado · <span style="color:var(--green)" id="hm-live-tag-clp">mes actual se actualiza live</span></span>
+    </div>
+    <div class="heatmap-wrap"><div id="heatmap-container-clp"></div></div>
+  </div>
+
   <!-- CHARTS -->
   <div class="charts-row">
     <div class="chart-card">
@@ -251,6 +294,184 @@ const portfolio = [
   { ticker:"SOQUICOM",   yahooTicker:"SOQUICOM",   name:"Soquicom S.A.",                  shares:672,    buyPrice:372,     price:379,   value:254688,   pct:1.0,  ret:1.9,   div:16952,   firstBuy:"2026-02-10" },
   { ticker:"ENELGXCH",   yahooTicker:"ENELGXCH",   name:"Enel Generación Chile S.A.",     shares:353,    buyPrice:566,     price:528,   value:186384,   pct:0.7,  ret:-6.7,  div:12291,   firstBuy:"2026-05-07" },
 ];
+
+// ── RENDIMIENTO POR AÑO (CLP) ────────────────────────────────────────────────
+// Metodología: Simple Dietz estimado. Sin datos TTWROR de plataforma externa.
+// Actualizar con valores de la corredora cuando estén disponibles.
+const yearlyPerfCLP = [
+  {
+    year: '2023', tag: 'parcial · May–Dic',
+    ret: 2.0,
+    deposits: 7005273, endVal: 7500000,
+    positions: 'AAISA · ANDINA-B · LIPIGAS · SECURITY · CAP · CCU · SQM-B',
+    note: 'Primer año parcial. Pérdida en CAP compensada. Retorno estimado.'
+  },
+  {
+    year: '2024', tag: 'Ene–Dic',
+    ret: 12.0,
+    deposits: 8595590, endVal: 14000000,
+    positions: 'COLBUN · ILC · INVERCAP · NUAM · EMBONOR-B · HABITAT · CFINRENTAS',
+    note: 'Reorganización: venta CCU, inicio COLBUN, ILC, NUAM. Retorno estimado.'
+  },
+  {
+    year: '2025', tag: 'Ene–Dic',
+    ret: 22.0,
+    deposits: 0, endVal: 18000000,
+    positions: 'BICECORP · consolidación posiciones',
+    note: 'Venta SECURITY, ANDINA-B, BCI. Apreciación COLBUN, ILC, LIPIGAS. Estimado.'
+  },
+  {
+    year: '2026', tag: 'YTD · Ene–May',
+    ret: 55.0,
+    deposits: -2000000, endVal: 26244000,
+    positions: 'SOQUICOM · QUINENCO · ENELGXCH · ITAUCL · venta SQM-B',
+    note: 'ILC +191% · LIPIGAS +210% · Efectivo $1.39M. Retorno estimado.'
+  },
+];
+
+(function renderYearlyCLP() {
+  const grid = document.getElementById('yearly-grid-clp');
+  if (!grid) return;
+  grid.innerHTML = yearlyPerfCLP.map(d => {
+    const retColor = d.ret >= 0 ? 'green' : 'red';
+    const retSign  = d.ret >= 0 ? '+' : '';
+    return `
+      <div class="yearly-card">
+        <div class="year-label">${d.year}</div>
+        <div class="year-tag">${d.tag}</div>
+        <div class="year-ret ${retColor}">${retSign}${d.ret.toFixed(1)}%</div>
+        <div class="year-row"><span>Capital ingresado</span><span>$${fmtCLP(d.deposits)}</span></div>
+        <div class="year-row"><span>Valor fin de año</span><span>$${fmtCLP(d.endVal)}</span></div>
+        <div class="year-note">Posiciones: ${d.positions}<br>${d.note}</div>
+      </div>`;
+  }).join('');
+})();
+
+// ── GRÁFICO DE EVOLUCIÓN (CLP) ────────────────────────────────────────────────
+// Puntos históricos estimados. Último punto actualiza con precios live.
+const portfolioHistoryCLP = [
+  { label: 'May 2023',  value:   299642 },   // primera compra: AAISA
+  { label: 'Nov 2023',  value:  6700000 },   // CAP vendida, CCU/SQM-B/SECURITY
+  { label: 'Dic 2023',  value:  7500000 },   // cierre 2023
+  { label: 'Jun 2024',  value:  9500000 },   // COLBUN, ILC iniciados; AAISA vendida
+  { label: 'Oct 2024',  value: 13000000 },   // EMBONOR-B, HABITAT, CFINRENTAS
+  { label: 'Dic 2024',  value: 14000000 },   // cierre 2024
+  { label: 'Mar 2025',  value: 15000000 },   // BICECORP; venta SECURITY/ANDINA-B/BCI
+  { label: 'Dic 2025',  value: 18000000 },   // cierre 2025 (estimado)
+  { label: 'Feb 2026',  value: 16500000 },   // venta SQM-B, retirada -$2M
+  { label: 'Abr 2026',  value: 19000000 },   // SOQUICOM, QUINENCO, ENELGXCH, ITAUCL
+  { label: 'May 2026',  value: 26244000 },   // ← actualiza con precios live (equity+cash)
+];
+
+let chartHistoryCLP;
+(function buildHistoryChartCLP() {
+  const canvas = document.getElementById('chartHistoryCLP');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 260);
+  grad.addColorStop(0, 'rgba(99,179,237,0.35)');
+  grad.addColorStop(1, 'rgba(99,179,237,0.02)');
+
+  chartHistoryCLP = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: portfolioHistoryCLP.map(d => d.label),
+      datasets: [{
+        label: 'Portafolio CLP',
+        data: portfolioHistoryCLP.map(d => d.value),
+        borderColor: '#63b3ed',
+        backgroundColor: grad,
+        borderWidth: 2.5,
+        pointRadius: portfolioHistoryCLP.map((_, i) => i === portfolioHistoryCLP.length - 1 ? 6 : 4),
+        pointBackgroundColor: portfolioHistoryCLP.map((_, i) => i === portfolioHistoryCLP.length - 1 ? '#22c55e' : '#63b3ed'),
+        pointBorderColor: '#1a1d2e',
+        pointBorderWidth: 2,
+        fill: true,
+        tension: 0.38,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` $${fmtCLP(c.parsed.y)}` } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7a7f99', font: { size: 10 }, maxRotation: 30 } },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#7a7f99', font: { size: 10 },
+            callback: v => v >= 1000000 ? '$' + (v/1000000).toFixed(1) + 'M' : '$' + (v/1000).toFixed(0) + 'k'
+          }
+        }
+      }
+    }
+  });
+})();
+
+// ── MAPA DE CALOR MENSUAL (CLP) ───────────────────────────────────────────────
+// null = mes sin datos. Completar con TTWROR de la corredora cuando esté disponible.
+// El mes actual (mayo 2026) se actualiza live con precios de Yahoo Finance.
+const HEATMAP_CLP_YEAR  = 2026;
+const HEATMAP_CLP_MONTH = 4;        // mayo = índice 4 (0-based)
+const MONTH_START_CLP   = 20000000; // equity + efectivo al inicio de mayo 2026 (estimado)
+
+// Retornos mensuales estimados (Simple Dietz). Completar con datos exactos de la corredora.
+// 2023–2025 estimados a partir de snapshots históricos y movimientos conocidos.
+// 2026 Jan–Apr estimados; Mayo se actualiza live con precios de Yahoo Finance.
+const monthlyReturnsCLP = {
+  //          E      F      M      A      M      J      J      A      S      O      N      D
+  2023: [  null,  null,  null,  null,   0.5,   0.3,   0.0,   0.3,  -1.2,  -2.8,   3.0,   2.0 ],
+  2024: [   1.0,   0.5,   2.0,  -1.0,   0.5,   0.5,   1.5,   0.0,   1.5,   1.5,   1.5,   2.5 ],
+  2025: [   0.5,   1.0,   2.0,   1.0,   2.5,   2.0,   1.0,   1.5,   2.0,   1.5,   2.0,   2.5 ],
+  2026: [   2.5,   3.0,   4.0,  10.0,  31.0,  null,  null,  null,  null,  null,  null,  null ],
+};
+
+const MONTH_LABELS_CLP = ['E','F','M','A','M','J','J','A','S','O','N','D'];
+
+function heatColorCLP(val) {
+  if (val === null) return null;
+  if (val >=  20) return { bg:'#14532d', text:'#fff' };
+  if (val >=  12) return { bg:'#166534', text:'#fff' };
+  if (val >=   6) return { bg:'#16a34a', text:'#fff' };
+  if (val >=   2) return { bg:'#4ade80', text:'#000' };
+  if (val >    0) return { bg:'#bbf7d0', text:'#000' };
+  if (val >   -2) return { bg:'#fecaca', text:'#000' };
+  if (val >   -6) return { bg:'#f87171', text:'#fff' };
+  if (val >  -12) return { bg:'#dc2626', text:'#fff' };
+  return              { bg:'#7f1d1d', text:'#fff' };
+}
+
+function renderHeatmapCLP(overrideVal) {
+  const container = document.getElementById('heatmap-container-clp');
+  if (!container) return;
+  const years = Object.keys(monthlyReturnsCLP).map(Number).sort();
+  let html = '<table class="heatmap-table"><thead><tr><th class="year-h"></th>';
+  MONTH_LABELS_CLP.forEach(m => { html += `<th>${m}</th>`; });
+  html += '</tr></thead><tbody>';
+  years.forEach(year => {
+    html += `<tr><td class="year-col">${String(year).slice(2)}</td>`;
+    monthlyReturnsCLP[year].forEach((val, mi) => {
+      const isLive = (year === HEATMAP_CLP_YEAR && mi === HEATMAP_CLP_MONTH);
+      const displayVal = (isLive && overrideVal !== undefined) ? overrideVal : val;
+      if (displayVal === null) {
+        html += `<td class="hm-empty" title="${MONTH_LABELS_CLP[mi]} ${year} — sin datos">—</td>`;
+      } else {
+        const c = heatColorCLP(displayVal);
+        const label = (displayVal >= 0 ? '+' : '') + displayVal.toFixed(1) + '%';
+        const liveClass = isLive ? ' heatmap-live-cell' : '';
+        html += `<td class="${liveClass}" style="background:${c.bg};color:${c.text}" title="${MONTH_LABELS_CLP[mi]} ${year}">${label}</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+renderHeatmapCLP();
 
 // ── TRANSACCIONES — datos exactos del CSV exportado desde la plataforma ───────
 // Precio = precio por acción del CSV · Monto = Valor neto de transacción
@@ -574,6 +795,12 @@ function updateAll() {
 
   renderTable();
   updateCharts(totalEquity);
+
+  // Heatmap — actualizar mes actual (mayo 2026) con retorno live
+  const liveMonthRet = parseFloat(((totalCash / MONTH_START_CLP - 1) * 100).toFixed(1));
+  renderHeatmapCLP(liveMonthRet);
+  const hmTag = document.getElementById('hm-live-tag-clp');
+  if (hmTag) hmTag.textContent = `● LIVE mayo: ${liveMonthRet >= 0 ? '+' : ''}${liveMonthRet}%`;
 }
 
 // ── TABLA ─────────────────────────────────────────────────────────────────────
