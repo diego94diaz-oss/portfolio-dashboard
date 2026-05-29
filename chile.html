@@ -188,31 +188,6 @@
     <div class="alert">⚠️ <span>ILC</span> — 16.0% del portafolio total (umbral: 20%). Cercano al límite de concentración.</div>
   </div>
 
-  <!-- PORTFOLIO TABLE -->
-  <div class="section-title">Posiciones actuales</div>
-  <div class="table-wrap">
-    <div class="table-controls">
-      <input class="table-search" id="ticker-search" type="text" placeholder="🔍 Buscar ticker o empresa..." oninput="renderTable()" />
-    </div>
-    <table id="portfolio-table">
-      <thead>
-        <tr>
-          <th class="sortable" onclick="sortTable('ticker')">   Ticker      </th>
-          <th class="sortable" onclick="sortTable('name')">     Empresa      </th>
-          <th class="sortable" onclick="sortTable('shares')">   Acciones     </th>
-          <th class="sortable" onclick="sortTable('buyPrice')"> P. Compra    </th>
-          <th class="sortable" onclick="sortTable('price')">    P. Actual    </th>
-          <th class="sortable" onclick="sortTable('value')">    Valor        </th>
-          <th class="sortable" onclick="sortTable('pct')">      % Portafolio </th>
-          <th class="sortable" onclick="sortTable('ret')">      Retorno      </th>
-          <th class="sortable" onclick="sortTable('div')">      Dividendos   </th>
-          <th>Primera compra</th>
-        </tr>
-      </thead>
-      <tbody id="portfolio-body"></tbody>
-    </table>
-  </div>
-
   <!-- YEARLY RETURNS -->
   <div class="section-title" style="margin-bottom:12px">Rendimiento por año</div>
   <div class="yearly-grid" id="yearly-grid-clp"></div>
@@ -245,6 +220,31 @@
       <div class="section-title">Valor mercado vs Costo (CLP)</div>
       <div class="chart-wrap"><canvas id="chartCost"></canvas></div>
     </div>
+  </div>
+
+  <!-- PORTFOLIO TABLE -->
+  <div class="section-title">Posiciones actuales</div>
+  <div class="table-wrap">
+    <div class="table-controls">
+      <input class="table-search" id="ticker-search" type="text" placeholder="🔍 Buscar ticker o empresa..." oninput="renderTable()" />
+    </div>
+    <table id="portfolio-table">
+      <thead>
+        <tr>
+          <th class="sortable" onclick="sortTable('ticker')">   Ticker      </th>
+          <th class="sortable" onclick="sortTable('name')">     Empresa      </th>
+          <th class="sortable" onclick="sortTable('shares')">   Acciones     </th>
+          <th class="sortable" onclick="sortTable('buyPrice')"> P. Compra    </th>
+          <th class="sortable" onclick="sortTable('price')">    P. Actual    </th>
+          <th class="sortable" onclick="sortTable('value')">    Valor        </th>
+          <th class="sortable" onclick="sortTable('pct')">      % Portafolio </th>
+          <th class="sortable" onclick="sortTable('ret')">      Retorno      </th>
+          <th class="sortable" onclick="sortTable('div')">      Dividendos   </th>
+          <th>Primera compra</th>
+        </tr>
+      </thead>
+      <tbody id="portfolio-body"></tbody>
+    </table>
   </div>
 
   <!-- TRANSACTIONS -->
