@@ -411,7 +411,7 @@ const portfolio = [
   { ticker:"LDI",      name:"loanDepot Inc",               shares:4395.27, buyPrice:1.21,    price:1.25,   value:5494.09, pct:13.2, ret:2.6,    alert:false, firstBuy:"2026-05-12" },
   { ticker:"NVO",      name:"Novo Nordisk",                shares:29.27,   buyPrice:60.47,   price:43.8,   value:1282.06, pct:3.1,  ret:-27.1,  alert:false, firstBuy:"2025-06-26" },
   { ticker:"NIO",      name:"NIO Inc ADR",                 shares:207.28,  buyPrice:4.82,    price:5.2,    value:1077.84, pct:2.6,  ret:7.6,    alert:false, firstBuy:"2026-01-05" },
-  { ticker:"MSTR",     name:"Strategy Inc",                shares:6.66,    buyPrice:146.78,  price:159.89, value:1064.72, pct:2.6,  ret:8.6,    alert:false, firstBuy:"2026-01-27" },
+  { ticker:"MSTR",     name:"Strategy Inc",                shares:13.9139, buyPrice:142.13,  price:137.857, value:1918.13, pct:4.3,  ret:-3.0,   alert:false, firstBuy:"2026-01-27" },
   { ticker:"MELI",     name:"MercadoLibre",                shares:0.548,   buyPrice:1825.49, price:1664.42,value:911.77,  pct:2.2,  ret:-8.8,   alert:false, firstBuy:"2026-04-22" },
   { ticker:"IIPR",     name:"Innovative Industrial Prop.", shares:10.815,  buyPrice:45.62,   price:57.06,  value:617.1,   pct:1.5,  ret:24.7,   alert:false, firstBuy:"2026-02-23" },
   { ticker:"PEP",      name:"PepsiCo Inc",                 shares:4.047,   buyPrice:157.85,  price:150.57, value:609.37,  pct:1.5,  ret:3.5,    alert:false, firstBuy:"2024-11-18" },
@@ -439,8 +439,8 @@ const recommendations = [
   { ticker:"TROW", upside:-5.8, signal:"sell", target:97.42, currentPrice:103.39, analysts:12,
     fundamento:"Upside de -5.8% respecto al precio objetivo de consenso de analistas.",
     riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"MSTR", upside:138.2, signal:"buy", target:380.79, currentPrice:159.89, analysts:14,
-    fundamento:"Upside de 138.2% respecto al precio objetivo de consenso de analistas.",
+  { ticker:"MSTR", upside:176.2, signal:"buy", target:380.79, currentPrice:137.857, analysts:14,
+    fundamento:"Upside de 176.2% respecto al precio objetivo de consenso de analistas.",
     riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
   { ticker:"ASST", upside:59.3, signal:"buy", target:29.00, currentPrice:18.21, analysts:4,
     fundamento:"Upside de 59.3% respecto al precio objetivo de consenso de analistas.",
@@ -504,7 +504,7 @@ const transactions = [
   { date:"2026-03-30", asset:"TROW — T. Rowe Price",  type:"Compra",  shares:"4.47",    price:"$89.12",    amount:"$400"   },
 ];
 
-const CASH = 2797.67; // IBK $2,795.50 + Zesty $2.17
+const CASH = 1796.67; // tras compra MSTR 2026-06-02 (-$1,001.00). Previo $2,797.67 (IBK $2,795.50 + Zesty $2.17)
 const totalEquity = portfolio.reduce((s, p) => s + p.value, 0);
 const totalWithCash = totalEquity + CASH;
 
