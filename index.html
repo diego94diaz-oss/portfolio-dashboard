@@ -247,6 +247,11 @@
       <div class="value blue">$1,797</div>
       <div class="sub">IBK $1,794.50 &nbsp;·&nbsp; Zesty $2.17 &nbsp;·&nbsp; Racional $0</div>
     </div>
+    <div class="card">
+      <div class="label">Total combinado 🇺🇸+🇨🇱 (CLP)</div>
+      <div class="value blue" id="combined-clp-value">—</div>
+      <div class="sub" id="combined-clp-sub">USD + CLP · tipo de cambio live</div>
+    </div>
   </div>
 
   <!-- ALERTS (renderizado dinámico por JS) -->
@@ -640,6 +645,7 @@ async function fetchLivePrices() {
   document.getElementById('total-return-sub').textContent = `${gainSign}$${fmt(Math.abs(gain), 0)} sobre costo`;
   if (liveCount > 0)
     document.getElementById('total-value-sub').textContent = `${liveCount} precios live · ${portfolio.length} posiciones`;
+  renderCombinedCLP({ usd: total });
 
   // Actualizar último punto del gráfico de evolución con valor live (equity + efectivo)
   if (typeof chartHistory !== 'undefined' && chartHistory && equity > 0) {
@@ -706,6 +712,7 @@ function updateTotalCard() {
   document.getElementById('total-return-sub').textContent = `${gainSign}$${fmt(Math.abs(gain), 0)} sobre costo`;
   if (liveCount > 0)
     document.getElementById('total-value-sub').textContent = `${liveCount} precios live · ${portfolio.length} posiciones`;
+  renderCombinedCLP({ usd: total });
 
   portfolio.forEach(p => {
     const px = livePx[p.ticker];
@@ -1409,7 +1416,46 @@ function updateAllLive(liveTotal) {
 }
 
 // ── INIT — corre al final, cuando todas las celdas ya existen ─────────────────
+// ── TOTAL COMBINADO (USD 🇺🇸 + CLP 🇨🇱) ─────────────────────────────────────────
+// Cada dashboard guarda su propio total en localStorage (mismo origen) para que
+// el otro lo lea. El tipo de cambio USD/CLP se obtiene en vivo (sin API key).
+const FX_FALLBACK  = 950;        // USD/CLP de respaldo si fallan las APIs
+const USD_FALLBACK = 44254;      // total portafolio USD de respaldo (snapshot 2026-06-02)
+const CLP_FALLBACK = 26243618;   // total portafolio CLP de respaldo (snapshot)
+let _usdClpRate = null;
+
+async function getUsdClpRate() {
+  if (_usdClpRate) return { rate: _usdClpRate, live: true };
+  const sources = [
+    async () => { const r = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'); const d = await r.json(); return d && d.usd && d.usd.clp; },
+    async () => { const r = await fetch('https://open.er-api.com/v6/latest/USD'); const d = await r.json(); return d && d.rates && d.rates.CLP; },
+  ];
+  for (const src of sources) {
+    try { const v = await src(); if (v && v > 0) { _usdClpRate = v; return { rate: v, live: true }; } } catch (e) {}
+  }
+  return { rate: FX_FALLBACK, live: false };
+}
+
+async function renderCombinedCLP(own) {
+  own = own || {};
+  if (own.usd != null) localStorage.setItem('combined_total_usd', String(own.usd));
+  if (own.clp != null) localStorage.setItem('combined_total_clp', String(own.clp));
+  const usd = parseFloat(localStorage.getItem('combined_total_usd')) || USD_FALLBACK;
+  const clp = parseFloat(localStorage.getItem('combined_total_clp')) || CLP_FALLBACK;
+  const { rate, live } = await getUsdClpRate();
+  const combined = clp + usd * rate;
+  const elV = document.getElementById('combined-clp-value');
+  const elS = document.getElementById('combined-clp-sub');
+  if (elV) elV.textContent = '$' + Math.round(combined).toLocaleString('es-CL');
+  if (elS) elS.textContent =
+    'USD $' + Math.round(usd).toLocaleString('en-US') +
+    ' × $' + Math.round(rate).toLocaleString('es-CL') +
+    ' + CLP $' + Math.round(clp).toLocaleString('es-CL') +
+    (live ? ' · TC live' : ' · TC est.');
+}
+
 (function init() {
+  renderCombinedCLP({ usd: totalWithCash });
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
     document.getElementById('api-key-input').value = saved;

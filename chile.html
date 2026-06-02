@@ -180,6 +180,11 @@
       <div class="value" id="card-ret-div">—</div>
       <div class="sub" id="card-ret-div-sub">sobre costo</div>
     </div>
+    <div class="card">
+      <div class="label">Total combinado 🇺🇸+🇨🇱 (CLP)</div>
+      <div class="value blue" id="combined-clp-value">—</div>
+      <div class="sub" id="combined-clp-sub">USD + CLP · tipo de cambio live</div>
+    </div>
   </div>
 
   <!-- ALERTS -->
@@ -801,6 +806,9 @@ function updateAll() {
   renderHeatmapCLP(liveMonthRet);
   const hmTag = document.getElementById('hm-live-tag-clp');
   if (hmTag) hmTag.textContent = `● LIVE mayo: ${liveMonthRet >= 0 ? '+' : ''}${liveMonthRet}%`;
+
+  // Total combinado USD + CLP
+  renderCombinedCLP({ clp: totalCash });
 }
 
 // ── TABLA ─────────────────────────────────────────────────────────────────────
@@ -961,6 +969,44 @@ function updateCharts(totalEquity) {
   chartCost.data.labels            = sortedP.map(p => p.ticker);
   chartCost.data.datasets[0].data  = sortedP.map(p => p.value);
   chartCost.update('none');
+}
+
+// ── TOTAL COMBINADO (USD 🇺🇸 + CLP 🇨🇱) ─────────────────────────────────────────
+// Cada dashboard guarda su propio total en localStorage (mismo origen) para que
+// el otro lo lea. El tipo de cambio USD/CLP se obtiene en vivo (sin API key).
+const FX_FALLBACK  = 950;        // USD/CLP de respaldo si fallan las APIs
+const USD_FALLBACK = 44254;      // total portafolio USD de respaldo (snapshot 2026-06-02)
+const CLP_FALLBACK = 26243618;   // total portafolio CLP de respaldo (snapshot)
+let _usdClpRate = null;
+
+async function getUsdClpRate() {
+  if (_usdClpRate) return { rate: _usdClpRate, live: true };
+  const sources = [
+    async () => { const r = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'); const d = await r.json(); return d && d.usd && d.usd.clp; },
+    async () => { const r = await fetch('https://open.er-api.com/v6/latest/USD'); const d = await r.json(); return d && d.rates && d.rates.CLP; },
+  ];
+  for (const src of sources) {
+    try { const v = await src(); if (v && v > 0) { _usdClpRate = v; return { rate: v, live: true }; } } catch (e) {}
+  }
+  return { rate: FX_FALLBACK, live: false };
+}
+
+async function renderCombinedCLP(own) {
+  own = own || {};
+  if (own.usd != null) localStorage.setItem('combined_total_usd', String(own.usd));
+  if (own.clp != null) localStorage.setItem('combined_total_clp', String(own.clp));
+  const usd = parseFloat(localStorage.getItem('combined_total_usd')) || USD_FALLBACK;
+  const clp = parseFloat(localStorage.getItem('combined_total_clp')) || CLP_FALLBACK;
+  const { rate, live } = await getUsdClpRate();
+  const combined = clp + usd * rate;
+  const elV = document.getElementById('combined-clp-value');
+  const elS = document.getElementById('combined-clp-sub');
+  if (elV) elV.textContent = '$' + Math.round(combined).toLocaleString('es-CL');
+  if (elS) elS.textContent =
+    'USD $' + Math.round(usd).toLocaleString('en-US') +
+    ' × $' + Math.round(rate).toLocaleString('es-CL') +
+    ' + CLP $' + Math.round(clp).toLocaleString('es-CL') +
+    (live ? ' · TC live' : ' · TC est.');
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
