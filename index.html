@@ -102,6 +102,7 @@
     .live-chg { font-size: 11px; }
     .spinner { width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-cell { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; }
     .api-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 28px; display: flex; align-items: center; gap: 12px; font-size: 13px; }
     .api-bar input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; color: var(--text); font-size: 12px; width: 260px; outline: none; }
     .api-bar input:focus { border-color: var(--accent); }
@@ -233,7 +234,7 @@
     </div>
     <div class="card">
       <div class="label">Costo total</div>
-      <div class="value">$27,094</div>
+      <div class="value">$28,094</div>
       <div class="sub">Dividendos cobrados: $78.60</div>
     </div>
     <div class="card">
@@ -243,8 +244,8 @@
     </div>
     <div class="card">
       <div class="label">Efectivo disponible</div>
-      <div class="value blue">$2,797</div>
-      <div class="sub">IBK $2,795.50 &nbsp;·&nbsp; Zesty $2.17 &nbsp;·&nbsp; Racional $0</div>
+      <div class="value blue">$1,797</div>
+      <div class="sub">IBK $1,794.50 &nbsp;·&nbsp; Zesty $2.17 &nbsp;·&nbsp; Racional $0</div>
     </div>
   </div>
 
@@ -521,6 +522,9 @@ const liveCache = {};
 // Mapa simple ticker → precio live (número puro, sin objetos)
 const livePx = {};
 
+// Indicador de carga reutilizable para las celdas de precio
+const LOADING_HTML = '<span class="loading-cell"><span class="spinner"></span>cargando…</span>';
+
 function getApiKey() {
   return document.getElementById('api-key-input').value.trim()
       || localStorage.getItem(STORAGE_KEY) || '';
@@ -566,7 +570,7 @@ async function fetchLivePrices() {
   portfolio.forEach(p => {
     const lv = document.getElementById(`live-${p.ticker}`);
     const ch = document.getElementById(`chg-${p.ticker}`);
-    if (lv) lv.innerHTML = '<span class="spinner"></span>';
+    if (lv) lv.innerHTML = LOADING_HTML;
     if (ch) ch.innerHTML = '<span class="spinner"></span>';
   });
   if (lastEl) lastEl.textContent = 'Cargando precios...';
@@ -914,7 +918,7 @@ function renderTable() {
         <td>${fmt(p.shares, p.shares < 10 ? 4 : 2)}</td>
         <td>$${fmt(p.buyPrice)}</td>
         <td style="color:var(--muted)">$${fmt(p.price)}</td>
-        <td id="live-${p.ticker}"><span class="spinner"></span></td>
+        <td id="live-${p.ticker}">${LOADING_HTML}</td>
         <td id="chg-${p.ticker}"><span class="spinner"></span></td>
         ${targetCell}
         ${upsideCell}
