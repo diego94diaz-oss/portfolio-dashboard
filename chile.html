@@ -18,6 +18,17 @@
       --blue:     #3b82f6;
       --yellow:   #f59e0b;
     }
+    html[data-theme="light"] {
+      --bg: #eef0f6;
+      --surface: #ffffff;
+      --surface2: #e8eaf3;
+      --border: #d3d7e5;
+      --text: #1b1e2e;
+      --muted: #5d6378;
+    }
+    html[data-theme="light"] .alert { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+    .theme-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; color: var(--text); font-size: 14px; cursor: pointer; line-height: 1; }
+    .theme-btn:hover { border-color: var(--blue); }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; }
 
@@ -124,11 +135,17 @@
 </head>
 <body>
 
+<script>
+  // Aplicar tema guardado antes del primer render para evitar parpadeo
+  (function(){ if (localStorage.getItem('dashboard_theme') === 'light') document.documentElement.setAttribute('data-theme','light'); })();
+</script>
+
 <header>
   <div>
     <h1>🇨🇱 Portfolio CLP — Acciones Chilenas</h1>
     <span>Bolsa de Santiago (BCS) &nbsp;·&nbsp; Última actualización: 2026-05-28</span>
   </div>
+  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Alternar modo claro/oscuro">☀️</button>
 </header>
 
 <nav class="nav-bar">
@@ -326,7 +343,7 @@ const yearlyPerfCLP = [
     note: 'Venta SECURITY, ANDINA-B, BCI. Apreciación COLBUN, ILC, LIPIGAS. Estimado.'
   },
   {
-    year: '2026', tag: 'YTD · Ene–May',
+    year: '2026', tag: 'YTD · Ene–Jun',
     ret: 55.0,
     deposits: -2000000, endVal: 26244000,
     positions: 'SOQUICOM · QUINENCO · ENELGXCH · ITAUCL · venta SQM-B',
@@ -365,7 +382,8 @@ const portfolioHistoryCLP = [
   { label: 'Dic 2025',  value: 18000000 },   // cierre 2025 (estimado)
   { label: 'Feb 2026',  value: 16500000 },   // venta SQM-B, retirada -$2M
   { label: 'Abr 2026',  value: 19000000 },   // SOQUICOM, QUINENCO, ENELGXCH, ITAUCL
-  { label: 'May 2026',  value: 26244000 },   // ← actualiza con precios live (equity+cash)
+  { label: 'May 2026',  value: 26244000 },   // cierre mayo (snapshot 28-may)
+  { label: 'Jun 2026',  value: 26244000 },   // ← mes en curso · actualiza con precios live (equity+cash)
 ];
 
 let chartHistoryCLP;
@@ -418,10 +436,10 @@ let chartHistoryCLP;
 
 // ── MAPA DE CALOR MENSUAL (CLP) ───────────────────────────────────────────────
 // null = mes sin datos. Completar con TTWROR de la corredora cuando esté disponible.
-// El mes actual (mayo 2026) se actualiza live con precios de Yahoo Finance.
+// El mes actual (junio 2026) se actualiza live con precios de Yahoo Finance.
 const HEATMAP_CLP_YEAR  = 2026;
-const HEATMAP_CLP_MONTH = 4;        // mayo = índice 4 (0-based)
-const MONTH_START_CLP   = 20000000; // equity + efectivo al inicio de mayo 2026 (estimado)
+const HEATMAP_CLP_MONTH = 5;        // junio = índice 5 (0-based)
+const MONTH_START_CLP   = 26243618; // equity + efectivo al inicio de junio 2026 (= cierre mayo)
 
 // Retornos mensuales estimados (Simple Dietz). Completar con datos exactos de la corredora.
 // 2023–2025 estimados a partir de snapshots históricos y movimientos conocidos.
@@ -431,7 +449,7 @@ const monthlyReturnsCLP = {
   2023: [  null,  null,  null,  null,   0.5,   0.3,   0.0,   0.3,  -1.2,  -2.8,   3.0,   2.0 ],
   2024: [   1.0,   0.5,   2.0,  -1.0,   0.5,   0.5,   1.5,   0.0,   1.5,   1.5,   1.5,   2.5 ],
   2025: [   0.5,   1.0,   2.0,   1.0,   2.5,   2.0,   1.0,   1.5,   2.0,   1.5,   2.0,   2.5 ],
-  2026: [   2.5,   3.0,   4.0,  10.0,  31.0,  null,  null,  null,  null,  null,  null,  null ],
+  2026: [   2.5,   3.0,   4.0,  10.0,  31.2,   0.0,  null,  null,  null,  null,  null,  null ],
 };
 
 const MONTH_LABELS_CLP = ['E','F','M','A','M','J','J','A','S','O','N','D'];
@@ -801,11 +819,11 @@ function updateAll() {
   renderTable();
   updateCharts(totalEquity);
 
-  // Heatmap — actualizar mes actual (mayo 2026) con retorno live
+  // Heatmap — actualizar mes actual (junio 2026) con retorno live
   const liveMonthRet = parseFloat(((totalCash / MONTH_START_CLP - 1) * 100).toFixed(1));
   renderHeatmapCLP(liveMonthRet);
   const hmTag = document.getElementById('hm-live-tag-clp');
-  if (hmTag) hmTag.textContent = `● LIVE mayo: ${liveMonthRet >= 0 ? '+' : ''}${liveMonthRet}%`;
+  if (hmTag) hmTag.textContent = `● LIVE junio: ${liveMonthRet >= 0 ? '+' : ''}${liveMonthRet}%`;
 
   // Total combinado USD + CLP
   renderCombinedCLP({ clp: totalCash });
@@ -1008,6 +1026,20 @@ async function renderCombinedCLP(own) {
     ' + CLP $' + Math.round(clp).toLocaleString('es-CL') +
     (live ? ' · TC live' : ' · TC est.');
 }
+
+// ── MODO CLARO / OSCURO ───────────────────────────────────────────────────────
+function toggleTheme() {
+  const root  = document.documentElement;
+  const light = root.getAttribute('data-theme') === 'light';
+  if (light) { root.removeAttribute('data-theme'); localStorage.setItem('dashboard_theme', 'dark'); }
+  else       { root.setAttribute('data-theme', 'light'); localStorage.setItem('dashboard_theme', 'light'); }
+  updateThemeBtn();
+}
+function updateThemeBtn() {
+  const b = document.getElementById('theme-btn');
+  if (b) b.textContent = document.documentElement.getAttribute('data-theme') === 'light' ? '🌙' : '☀️';
+}
+updateThemeBtn();
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 updateAll();

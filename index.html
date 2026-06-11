@@ -20,6 +20,17 @@
       --purple: #a855f7;
       --accent: #6366f1;
     }
+    html[data-theme="light"] {
+      --bg: #eef0f6;
+      --surface: #ffffff;
+      --surface2: #e8eaf3;
+      --border: #d3d7e5;
+      --text: #1b1e2e;
+      --muted: #5d6378;
+    }
+    html[data-theme="light"] .alert { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+    .theme-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; color: var(--text); font-size: 14px; cursor: pointer; line-height: 1; }
+    .theme-btn:hover { border-color: var(--accent); }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; }
     header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; }
@@ -203,9 +214,17 @@
 </head>
 <body>
 
+<script>
+  // Aplicar tema guardado antes del primer render para evitar parpadeo
+  (function(){ if (localStorage.getItem('dashboard_theme') === 'light') document.documentElement.setAttribute('data-theme','light'); })();
+</script>
+
 <header>
   <h1>📊 Portfolio Analyst Dashboard</h1>
-  <span>Última actualización: 2026-05-25 &nbsp;|&nbsp; Broker: IBK / Racional / Zesty</span>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span>Última actualización: 2026-05-25 &nbsp;|&nbsp; Broker: IBK / Racional / Zesty</span>
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Alternar modo claro/oscuro">☀️</button>
+  </div>
 </header>
 
 <nav style="display:flex;gap:8px;padding:8px 24px;background:var(--surface);border-bottom:1px solid var(--border)">
@@ -1114,11 +1133,11 @@ const yearlyPerf = [
     note: 'ASTS comprado a ~$22. Valor dic-2025 estimado con precios históricos.'
   },
   {
-    year: '2026', tag: 'YTD · Ene–May',
-    ret: 43.4,
-    deposits: 6041, endVal: 44402,
+    year: '2026', tag: 'YTD · Ene–Jun',
+    ret: 43.0,
+    deposits: 6041, endVal: 44254,
     positions: 'NIO · MSTR · IIPR · CRM · MELI · LDI...',
-    note: 'Equity $41,604 + efectivo $2,798. Snapshot 24-may-2026.'
+    note: 'Equity $42,458 + efectivo $1,797. Snapshot 02-jun-2026.'
   },
 ];
 
@@ -1142,7 +1161,7 @@ const yearlyPerf = [
 
 // ── GRÁFICO DE EVOLUCIÓN ──────────────────────────────────────────────────────
 // Puntos históricos estimados con precios de cierre de cada período.
-// El último punto (mayo 2026) se actualiza automáticamente con precios live.
+// El último punto (mes en curso) se actualiza automáticamente con precios live.
 const portfolioHistory = [
   { label: 'Jul 2023',  value:   605 },  // primera compra: DIS
   { label: 'Dic 2023',  value:   649 },  // DIS fin de año
@@ -1155,7 +1174,8 @@ const portfolioHistory = [
   { label: 'Dic 2025',  value: 21056 },  // cierre 2025
   { label: 'Feb 2026',  value: 24500 },  // NIO, MSTR, Strive, IIPR
   { label: 'Mar 2026',  value: 28000 },  // TROW, MSFT, NKE + depósitos
-  { label: 'May 2026',  value: 44402 },  // equity $41,604 + efectivo $2,798 · se actualiza con precios live
+  { label: 'May 2026',  value: 44402 },  // cierre mayo: equity $41,604 + efectivo $2,798
+  { label: 'Jun 2026',  value: 44254 },  // mes en curso · se actualiza con precios live
 ];
 
 let chartHistory;
@@ -1311,17 +1331,17 @@ let chartCost = new Chart(document.getElementById('chartCost'), {
 
 // ── MAPA DE CALOR MENSUAL ─────────────────────────────────────────────────────
 // Rentabilidad mensual TTWROR por año. null = mes sin datos / futuro.
-// Fuente: plataforma externa. El mes actual (mayo 2026) se actualiza con precios live.
+// Fuente: plataforma externa. El mes actual (junio 2026) se actualiza con precios live.
 const HEATMAP_CURRENT_YEAR  = 2026;
-const HEATMAP_CURRENT_MONTH = 4;   // índice 0-based: 4 = mayo
-const MONTH_START_VALUE     = 37629; // valor portafolio inicio de mayo 2026 (equity+cash)
+const HEATMAP_CURRENT_MONTH = 5;   // índice 0-based: 5 = junio
+const MONTH_START_VALUE     = 44402; // valor portafolio inicio de junio 2026 (= cierre de mayo)
 
 const monthlyReturns = {
   //          E      F      M      A      M      J      J      A      S      O      N      D
   2023: [  null,  null,  null,  null,  null,  null,   4.0,  -5.9,  -3.1,   0.7,  13.6,  -2.6 ],
   2024: [   6.4,  16.2,   9.7,  -5.9,  13.0,  11.7,   5.7,   0.1,   4.1,   0.1,  -1.8,   0.8 ],
   2025: [   1.8,  -1.2,   6.4,   0.8,   6.0,  18.6,   2.7,   6.3,   9.1,  16.7,  -1.7,  -1.8 ],
-  2026: [   7.9,  -7.1,  -0.6,  22.1,  18.0,  null,  null,  null,  null,  null,  null,  null ],
+  2026: [   7.9,  -7.1,  -0.6,  22.1,  18.0,  -0.3,  null,  null,  null,  null,  null,  null ],
 };
 
 const MONTH_LABELS = ['E','F','M','A','M','J','J','A','S','O','N','D'];
@@ -1428,10 +1448,10 @@ function updateAllLive(liveTotal) {
   }
 
   // 4. Heatmap — actualizar mes actual con retorno live
-  const liveMayRet = parseFloat(((liveTotal / MONTH_START_VALUE - 1) * 100).toFixed(1));
-  renderHeatmap(liveMayRet);
+  const liveMonthRet = parseFloat(((liveTotal / MONTH_START_VALUE - 1) * 100).toFixed(1));
+  renderHeatmap(liveMonthRet);
   const hmTag = document.getElementById('hm-live-tag');
-  if (hmTag) hmTag.textContent = `● LIVE mayo: ${liveMayRet >= 0 ? '+' : ''}${liveMayRet}%`;
+  if (hmTag) hmTag.textContent = `● LIVE junio: ${liveMonthRet >= 0 ? '+' : ''}${liveMonthRet}%`;
 
   // 5. Valor mercado vs Costo — top 10 por valor live
   if (chartCost) {
@@ -1485,6 +1505,20 @@ async function renderCombinedCLP(own) {
     ' + CLP $' + Math.round(clp).toLocaleString('es-CL') +
     (live ? ' · TC live' : ' · TC est.');
 }
+
+// ── MODO CLARO / OSCURO ───────────────────────────────────────────────────────
+function toggleTheme() {
+  const root  = document.documentElement;
+  const light = root.getAttribute('data-theme') === 'light';
+  if (light) { root.removeAttribute('data-theme'); localStorage.setItem('dashboard_theme', 'dark'); }
+  else       { root.setAttribute('data-theme', 'light'); localStorage.setItem('dashboard_theme', 'light'); }
+  updateThemeBtn();
+}
+function updateThemeBtn() {
+  const b = document.getElementById('theme-btn');
+  if (b) b.textContent = document.documentElement.getAttribute('data-theme') === 'light' ? '🌙' : '☀️';
+}
+updateThemeBtn();
 
 (function init() {
   const saved = localStorage.getItem(STORAGE_KEY);
