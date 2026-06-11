@@ -29,6 +29,11 @@
     html[data-theme="light"] .alert { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
     .theme-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; color: var(--text); font-size: 14px; cursor: pointer; line-height: 1; }
     .theme-btn:hover { border-color: var(--blue); }
+    .spinner { width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .card-spinner { width: 18px; height: 18px; border-width: 3px; vertical-align: middle; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block; margin-right: 6px; animation: livePulse 1.2s ease-in-out infinite; }
+    @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; }
 
@@ -169,32 +174,32 @@
   <div class="cards">
     <div class="card">
       <div class="label">Valor total</div>
-      <div class="value" id="card-total">—</div>
+      <div class="value" id="card-total"><span class="spinner card-spinner"></span></div>
       <div class="sub" id="card-total-sub">13 posiciones</div>
     </div>
     <div class="card">
       <div class="label">Retorno total</div>
-      <div class="value" id="card-ret">—</div>
+      <div class="value" id="card-ret"><span class="spinner card-spinner"></span></div>
       <div class="sub" id="card-ret-sub">sobre costo</div>
     </div>
     <div class="card">
       <div class="label">Costo total</div>
-      <div class="value" id="card-cost">—</div>
+      <div class="value" id="card-cost"><span class="spinner card-spinner"></span></div>
       <div class="sub">Capital invertido en posiciones activas</div>
     </div>
     <div class="card">
       <div class="label">Dividendos + Intereses</div>
-      <div class="value green" id="card-div">$2.708.728</div>
+      <div class="value green" id="card-div"><span class="spinner card-spinner"></span></div>
       <div class="sub">Historial completo 2023–2026</div>
     </div>
     <div class="card">
       <div class="label">Efectivo disponible</div>
-      <div class="value blue">$1.388.543</div>
+      <div class="value blue" id="card-cash"><span class="spinner card-spinner"></span></div>
       <div class="sub">Cuenta ITAU BCS</div>
     </div>
     <div class="card">
       <div class="label">Retorno incl. dividendos</div>
-      <div class="value" id="card-ret-div">—</div>
+      <div class="value" id="card-ret-div"><span class="spinner card-spinner"></span></div>
       <div class="sub" id="card-ret-div-sub">sobre costo</div>
     </div>
     <div class="card">
@@ -745,18 +750,28 @@ async function fetchOnePrice(ticker) {
   return null;
 }
 
+// Pone spinner en todas las tarjetas del resumen (mientras cargan los precios)
+function setCardSpinnersCHL() {
+  ['card-total', 'card-ret', 'card-cost', 'card-div', 'card-cash', 'card-ret-div', 'combined-clp-value']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<span class="spinner card-spinner"></span>';
+    });
+}
+
 async function fetchLivePricesCHL() {
   const btn      = document.getElementById('btn-live');
   const statusEl = document.getElementById('price-status');
   if (btn) btn.disabled = true;
   statusEl.style.color = 'var(--muted)';
+  setCardSpinnersCHL();
 
   const saved = JSON.parse(localStorage.getItem(PRICE_KEY) || '{}');
   let updated = 0;
 
   for (let i = 0; i < portfolio.length; i++) {
     const p = portfolio[i];
-    statusEl.textContent = `⟳ Cargando precios... ${i + 1}/${portfolio.length} (${p.ticker})`;
+    statusEl.innerHTML = `<span class="live-dot"></span>Cargando precios en vivo… ${i + 1}/${portfolio.length} (${p.ticker})`;
     const result = await fetchOnePrice(p.ticker);
     if (result) {
       p.price = result.price;
@@ -776,6 +791,7 @@ async function fetchLivePricesCHL() {
   } else {
     statusEl.style.color = 'var(--yellow)';
     statusEl.textContent = '⚠ Sin conexión con Yahoo Finance — ingresá los precios manualmente';
+    updateAll(); // restaurar tarjetas con valores snapshot (no dejar spinners infinitos)
   }
   if (btn) btn.disabled = false;
 }
@@ -806,6 +822,10 @@ function updateAll() {
   document.getElementById('card-ret-div').textContent = `${divRet >= 0 ? '+' : ''}${divRet.toFixed(1)}%`;
   document.getElementById('card-ret-div').className   = 'value ' + (divRet >= 0 ? 'green' : 'red');
   document.getElementById('card-ret-div-sub').textContent = `+$${fmtCLP(gain + TOTAL_DIV)} sobre costo`;
+  const divEl  = document.getElementById('card-div');
+  if (divEl)  divEl.textContent  = `$${fmtCLP(TOTAL_DIV)}`;
+  const cashEl = document.getElementById('card-cash');
+  if (cashEl) cashEl.textContent = `$${fmtCLP(CASH_CLP)}`;
 
   // Alertas
   const alertsBar = document.getElementById('alerts-bar');
