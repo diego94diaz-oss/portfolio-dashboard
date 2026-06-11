@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portfolio CLP — Acciones Chilenas</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇨🇱</text></svg>">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
@@ -51,7 +52,7 @@
     .section-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px; }
 
     /* Cards */
-    .cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-bottom: 20px; }
+    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
     .card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 8px; }
     .card .value { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
@@ -149,7 +150,7 @@
 <header>
   <div>
     <h1>🇨🇱 Portfolio CLP — Acciones Chilenas</h1>
-    <span>Bolsa de Santiago (BCS) &nbsp;·&nbsp; Última actualización: 2026-05-28</span>
+    <span>Bolsa de Santiago (BCS) &nbsp;·&nbsp; Datos base: 28-may-2026 · precios live al cargar</span>
   </div>
   <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Alternar modo claro/oscuro">☀️</button>
 </header>
@@ -205,15 +206,14 @@
     </div>
     <div class="card">
       <div class="label">Total combinado 🇺🇸+🇨🇱 (CLP)</div>
-      <div class="value blue" id="combined-clp-value">—</div>
+      <div class="value blue" id="combined-clp-value"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
       <div class="sub" id="combined-clp-sub">USD + CLP · tipo de cambio live</div>
     </div>
   </div>
 
   <!-- ALERTS -->
   <div class="alerts" id="alerts-bar">
-    <div class="alert">⚠️ <span>COLBUN</span> — 34.0% del portafolio total (umbral: 20%). Posición altamente concentrada.</div>
-    <div class="alert">⚠️ <span>ILC</span> — 16.0% del portafolio total (umbral: 20%). Cercano al límite de concentración.</div>
+    <!-- contenido renderizado por updateAll() con los pesos reales -->
   </div>
 
   <!-- YEARLY RETURNS -->
@@ -328,6 +328,12 @@ const LOADING_HTML = '<span class="loading-cell"><span class="live-dot"></span>C
 // true cuando terminó la carga de precios live (o el usuario ingresó precios manualmente)
 let livePricesReady = false;
 
+// Color de una variable CSS del tema activo (claro/oscuro)
+function themeVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+const CHART_GRID = 'rgba(122,127,153,0.18)'; // gris neutro, visible en ambos temas
+
 // ── RENDIMIENTO POR AÑO (CLP) ────────────────────────────────────────────────
 // Metodología: Simple Dietz estimado. Sin datos TTWROR de plataforma externa.
 // Actualizar con valores de la corredora cuando estén disponibles.
@@ -421,7 +427,7 @@ let chartHistoryCLP;
         borderWidth: 2.5,
         pointRadius: portfolioHistoryCLP.map((_, i) => i === portfolioHistoryCLP.length - 1 ? 6 : 4),
         pointBackgroundColor: portfolioHistoryCLP.map((_, i) => i === portfolioHistoryCLP.length - 1 ? '#22c55e' : '#63b3ed'),
-        pointBorderColor: '#1a1d2e',
+        pointBorderColor: themeVar('--surface'),
         pointBorderWidth: 2,
         fill: true,
         tension: 0.38,
@@ -436,9 +442,9 @@ let chartHistoryCLP;
         tooltip: { callbacks: { label: c => ` $${fmtCLP(c.parsed.y)}` } }
       },
       scales: {
-        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7a7f99', font: { size: 10 }, maxRotation: 30 } },
+        x: { grid: { color: CHART_GRID }, ticks: { color: '#7a7f99', font: { size: 10 }, maxRotation: 30 } },
         y: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
+          grid: { color: CHART_GRID },
           ticks: { color: '#7a7f99', font: { size: 10 },
             callback: v => v >= 1000000 ? '$' + (v/1000000).toFixed(1) + 'M' : '$' + (v/1000).toFixed(0) + 'k'
           }
@@ -984,7 +990,7 @@ function buildCharts(totalEquity) {
     type: 'doughnut',
     data: {
       labels: portfolio.map(p => p.ticker),
-      datasets: [{ data: portfolio.map(p => p.value), backgroundColor: palette, borderWidth: 2, borderColor: '#1a1d27' }]
+      datasets: [{ data: portfolio.map(p => p.value), backgroundColor: palette, borderWidth: 2, borderColor: themeVar('--surface') }]
     },
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '62%',
@@ -999,7 +1005,7 @@ function buildCharts(totalEquity) {
               return chart.data.labels.map((label, i) => ({
                 text: `${label}  $${fmtCLP(ds.data[i])}  ${((ds.data[i] / tot) * 100).toFixed(1)}%`,
                 fillStyle: ds.backgroundColor[i], strokeStyle: ds.backgroundColor[i],
-                fontColor: '#e8eaf0', color: '#e8eaf0', lineWidth: 0, index: i
+                fontColor: themeVar('--text'), color: themeVar('--text'), lineWidth: 0, index: i
               }));
             }
           }
@@ -1029,7 +1035,7 @@ function buildCharts(totalEquity) {
       },
       scales: {
         x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-        y: { grid: { color: '#2e3248' }, ticks: { callback: v => '$' + (v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } }
+        y: { grid: { color: CHART_GRID }, ticks: { callback: v => '$' + (v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } }
       }
     }
   });
@@ -1084,12 +1090,26 @@ async function renderCombinedCLP(own) {
 }
 
 // ── MODO CLARO / OSCURO ───────────────────────────────────────────────────────
+function refreshChartsTheme() {
+  // Re-renderiza los charts para que leyendas y bordes tomen los colores del tema activo
+  if (typeof chartDonut !== 'undefined' && chartDonut) {
+    chartDonut.data.datasets[0].borderColor = themeVar('--surface');
+    chartDonut.update('none');
+  }
+  if (typeof chartCost !== 'undefined' && chartCost) chartCost.update('none');
+  if (typeof chartHistoryCLP !== 'undefined' && chartHistoryCLP) {
+    chartHistoryCLP.data.datasets[0].pointBorderColor = themeVar('--surface');
+    chartHistoryCLP.update('none');
+  }
+}
+
 function toggleTheme() {
   const root  = document.documentElement;
   const light = root.getAttribute('data-theme') === 'light';
   if (light) { root.removeAttribute('data-theme'); localStorage.setItem('dashboard_theme', 'dark'); }
   else       { root.setAttribute('data-theme', 'light'); localStorage.setItem('dashboard_theme', 'light'); }
   updateThemeBtn();
+  refreshChartsTheme();
 }
 function updateThemeBtn() {
   const b = document.getElementById('theme-btn');
