@@ -1057,16 +1057,17 @@ function updateCharts(totalEquity) {
 const FX_FALLBACK  = 950;        // USD/CLP de respaldo si fallan las APIs
 const USD_FALLBACK = 44254;      // total portafolio USD de respaldo (snapshot 2026-06-02)
 const CLP_FALLBACK = 26243618;   // total portafolio CLP de respaldo (snapshot)
-let _usdClpRate = null;
+let _usdClpRate = null, _usdClpRateTs = 0;
 
 async function getUsdClpRate() {
-  if (_usdClpRate) return { rate: _usdClpRate, live: true };
+  // Cache de 10 minutos: el TC se refresca en pasadas posteriores
+  if (_usdClpRate && (Date.now() - _usdClpRateTs) < 600000) return { rate: _usdClpRate, live: true };
   const sources = [
     async () => { const r = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'); const d = await r.json(); return d && d.usd && d.usd.clp; },
     async () => { const r = await fetch('https://open.er-api.com/v6/latest/USD'); const d = await r.json(); return d && d.rates && d.rates.CLP; },
   ];
   for (const src of sources) {
-    try { const v = await src(); if (v && v > 0) { _usdClpRate = v; return { rate: v, live: true }; } } catch (e) {}
+    try { const v = await src(); if (v && v > 0) { _usdClpRate = v; _usdClpRateTs = Date.now(); return { rate: v, live: true }; } } catch (e) {}
   }
   return { rate: FX_FALLBACK, live: false };
 }
@@ -1075,10 +1076,13 @@ async function renderCombinedCLP(own) {
   own = own || {};
   if (own.usd != null) localStorage.setItem('combined_total_usd', String(own.usd));
   if (own.clp != null) localStorage.setItem('combined_total_clp', String(own.clp));
+  // Mantener el indicador de carga hasta que los precios live estén listos
+  if (!livePricesReady) return;
   const usd = parseFloat(localStorage.getItem('combined_total_usd')) || USD_FALLBACK;
   const clp = parseFloat(localStorage.getItem('combined_total_clp')) || CLP_FALLBACK;
   const { rate, live } = await getUsdClpRate();
   const combined = clp + usd * rate;
+  const hora = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
   const elV = document.getElementById('combined-clp-value');
   const elS = document.getElementById('combined-clp-sub');
   if (elV) elV.textContent = '$' + Math.round(combined).toLocaleString('es-CL');
@@ -1086,8 +1090,13 @@ async function renderCombinedCLP(own) {
     'USD $' + Math.round(usd).toLocaleString('en-US') +
     ' × $' + Math.round(rate).toLocaleString('es-CL') +
     ' + CLP $' + Math.round(clp).toLocaleString('es-CL') +
-    (live ? ' · TC live' : ' · TC est.');
+    (live ? ' · TC live' : ' · TC est.') + ' · ' + hora;
 }
+
+// Si la otra página (USD) guarda su total en otra pestaña, refrescar la tarjeta al instante
+window.addEventListener('storage', e => {
+  if (e && (e.key === 'combined_total_usd' || e.key === 'combined_total_clp')) renderCombinedCLP();
+});
 
 // ── MODO CLARO / OSCURO ───────────────────────────────────────────────────────
 function refreshChartsTheme() {
