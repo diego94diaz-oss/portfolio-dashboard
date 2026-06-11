@@ -104,6 +104,8 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-cell { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; }
     .card-spinner { width: 18px; height: 18px; border-width: 3px; vertical-align: middle; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block; margin-right: 6px; animation: livePulse 1.2s ease-in-out infinite; }
+    @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
     .api-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 28px; display: flex; align-items: center; gap: 12px; font-size: 13px; }
     .api-bar input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; color: var(--text); font-size: 12px; width: 260px; outline: none; }
     .api-bar input:focus { border-color: var(--accent); }
@@ -241,7 +243,7 @@
     <div class="card">
       <div class="label">Variación del día</div>
       <div class="value" id="day-chg-value"><span class="spinner card-spinner"></span></div>
-      <div class="sub" id="day-chg-sub">Cargando precios live…</div>
+      <div class="sub" id="day-chg-sub"><span class="live-dot"></span>Cargando precios en vivo…</div>
     </div>
     <div class="card">
       <div class="label">Efectivo disponible</div>
@@ -531,6 +533,7 @@ const livePx = {};
 // Indicador de carga reutilizable para las celdas de precio
 const LOADING_HTML = '<span class="loading-cell"><span class="spinner"></span>cargando…</span>';
 const CARD_SPINNER_HTML = '<span class="spinner card-spinner"></span>';
+const LIVE_LOADING_HTML = '<span class="live-dot"></span>Cargando precios en vivo…';
 
 // Pone spinner en todas las tarjetas del resumen (mientras cargan los precios)
 function setCardSpinners() {
@@ -539,6 +542,8 @@ function setCardSpinners() {
       const el = document.getElementById(id);
       if (el) el.innerHTML = CARD_SPINNER_HTML;
     });
+  const daySub = document.getElementById('day-chg-sub');
+  if (daySub) daySub.innerHTML = LIVE_LOADING_HTML;
 }
 
 // Rellena las tarjetas que no dependen de precios live (costo y efectivo)
