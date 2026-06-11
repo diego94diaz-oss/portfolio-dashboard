@@ -103,6 +103,7 @@
     .spinner { width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-cell { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; }
+    .card-spinner { width: 18px; height: 18px; border-width: 3px; vertical-align: middle; }
     .api-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 28px; display: flex; align-items: center; gap: 12px; font-size: 13px; }
     .api-bar input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; color: var(--text); font-size: 12px; width: 260px; outline: none; }
     .api-bar input:focus { border-color: var(--accent); }
@@ -224,32 +225,32 @@
   <div class="cards">
     <div class="card">
       <div class="label">Valor total</div>
-      <div class="value" id="total-value">$44,401</div>
+      <div class="value" id="total-value"><span class="spinner card-spinner"></span></div>
       <div class="sub" id="total-value-sub">19 posiciones + efectivo</div>
     </div>
     <div class="card">
       <div class="label">Retorno total</div>
-      <div class="value green" id="total-return">+58.7%</div>
-      <div class="sub" id="total-return-sub">+$15,895 sobre costo</div>
+      <div class="value green" id="total-return"><span class="spinner card-spinner"></span></div>
+      <div class="sub" id="total-return-sub">sobre costo</div>
     </div>
     <div class="card">
       <div class="label">Costo total</div>
-      <div class="value">$28,094</div>
+      <div class="value" id="total-cost"><span class="spinner card-spinner"></span></div>
       <div class="sub">Dividendos cobrados: $78.60</div>
     </div>
     <div class="card">
       <div class="label">Variación del día</div>
-      <div class="value" id="day-chg-value" style="color:var(--muted)">—</div>
-      <div class="sub" id="day-chg-sub">Cargá precios live</div>
+      <div class="value" id="day-chg-value"><span class="spinner card-spinner"></span></div>
+      <div class="sub" id="day-chg-sub">Cargando precios live…</div>
     </div>
     <div class="card">
       <div class="label">Efectivo disponible</div>
-      <div class="value blue">$1,797</div>
+      <div class="value blue" id="cash-value"><span class="spinner card-spinner"></span></div>
       <div class="sub">IBK $1,794.50 &nbsp;·&nbsp; Zesty $2.17 &nbsp;·&nbsp; Racional $0</div>
     </div>
     <div class="card">
       <div class="label">Total combinado 🇺🇸+🇨🇱 (CLP)</div>
-      <div class="value blue" id="combined-clp-value">—</div>
+      <div class="value blue" id="combined-clp-value"><span class="spinner card-spinner"></span></div>
       <div class="sub" id="combined-clp-sub">USD + CLP · tipo de cambio live</div>
     </div>
   </div>
@@ -529,6 +530,25 @@ const livePx = {};
 
 // Indicador de carga reutilizable para las celdas de precio
 const LOADING_HTML = '<span class="loading-cell"><span class="spinner"></span>cargando…</span>';
+const CARD_SPINNER_HTML = '<span class="spinner card-spinner"></span>';
+
+// Pone spinner en todas las tarjetas del resumen (mientras cargan los precios)
+function setCardSpinners() {
+  ['total-value', 'total-return', 'total-cost', 'day-chg-value', 'cash-value', 'combined-clp-value']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = CARD_SPINNER_HTML;
+    });
+}
+
+// Rellena las tarjetas que no dependen de precios live (costo y efectivo)
+function fillStaticCards() {
+  const cost   = portfolio.reduce((s, p) => s + p.buyPrice * p.shares, 0);
+  const costEl = document.getElementById('total-cost');
+  if (costEl) costEl.textContent = `$${fmt(cost, 0)}`;
+  const cashEl = document.getElementById('cash-value');
+  if (cashEl) cashEl.textContent = `$${fmt(CASH, 0)}`;
+}
 
 function getApiKey() {
   return document.getElementById('api-key-input').value.trim()
@@ -571,7 +591,8 @@ async function fetchLivePrices() {
     return;
   }
 
-  // Mostrar spinner en todas las celdas
+  // Mostrar spinner en tarjetas del resumen y en todas las celdas
+  setCardSpinners();
   portfolio.forEach(p => {
     const lv = document.getElementById(`live-${p.ticker}`);
     const ch = document.getElementById(`chg-${p.ticker}`);
@@ -631,9 +652,15 @@ async function fetchLivePrices() {
     dayValEl.className   = 'value ' + (totalDayChg >= 0 ? 'green' : 'red');
     dayValEl.textContent = `${sign}$${fmt(Math.abs(totalDayChg), 0)}`;
     daySubEl.textContent = `${sign}${pct.toFixed(2)}% sobre el portafolio`;
+  } else if (dayValEl) {
+    dayValEl.className   = 'value';
+    dayValEl.style.color = 'var(--muted)';
+    dayValEl.textContent = '—';
+    if (daySubEl) daySubEl.textContent = 'Sin datos live — verificá la API key';
   }
 
   // Card valor total
+  fillStaticCards();
   const total    = equity + CASH;
   const cost     = portfolio.reduce((s, p) => s + p.buyPrice * p.shares, 0);
   const gain     = equity - cost;
@@ -1455,12 +1482,19 @@ async function renderCombinedCLP(own) {
 }
 
 (function init() {
-  renderCombinedCLP({ usd: totalWithCash });
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
+    // Las tarjetas quedan con spinner hasta que fetchLivePrices() termine
     document.getElementById('api-key-input').value = saved;
     fetchLivePrices();
   } else {
+    // Sin API key no habrá precios live: mostrar valores snapshot de inmediato
+    fillStaticCards();
+    updateTotalCard();
+    const dv = document.getElementById('day-chg-value');
+    const ds = document.getElementById('day-chg-sub');
+    if (dv) { dv.className = 'value'; dv.style.color = 'var(--muted)'; dv.textContent = '—'; }
+    if (ds) ds.textContent = 'Cargá precios live';
     portfolio.forEach(p => {
       const cell = document.getElementById(`live-${p.ticker}`);
       if (cell) cell.innerHTML = '<span style="color:var(--muted);font-size:11px">Ingresá API key</span>';
