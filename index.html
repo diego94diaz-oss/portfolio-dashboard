@@ -554,6 +554,9 @@ const LOADING_HTML = '<span class="loading-cell"><span class="live-dot"></span>C
 const CARD_SPINNER_HTML = LOADING_HTML;
 const LIVE_LOADING_HTML = '<span class="live-dot"></span>Cargando precios en vivo…';
 
+// true cuando terminó una pasada completa de precios live (o no habrá: sin API key)
+let livePricesReady = false;
+
 // Pone spinner en todas las tarjetas del resumen (mientras cargan los precios)
 function setCardSpinners() {
   ['total-value', 'total-return', 'total-cost', 'day-chg-value', 'cash-value', 'combined-clp-value']
@@ -615,8 +618,15 @@ async function fetchLivePrices() {
     return;
   }
 
-  // Mostrar spinner en tarjetas del resumen y en todas las celdas
+  // Mostrar indicador de carga en tarjetas, tarjeta anual, heatmap y etiquetas LIVE
+  livePricesReady = false;
   setCardSpinners();
+  renderYearly();
+  renderHeatmap();
+  const hmTagLoad = document.getElementById('hm-live-tag');
+  if (hmTagLoad) hmTagLoad.innerHTML = LIVE_LOADING_HTML;
+  const histTagLoad = document.getElementById('history-live-tag');
+  if (histTagLoad) histTagLoad.innerHTML = LIVE_LOADING_HTML;
   portfolio.forEach(p => {
     const lv = document.getElementById(`live-${p.ticker}`);
     const ch = document.getElementById(`chg-${p.ticker}`);
@@ -635,6 +645,9 @@ async function fetchLivePrices() {
     // Pausa de 1100ms entre llamadas (plan gratuito Finnhub: 60 req/min)
     await new Promise(r => setTimeout(r, 1100));
   }
+
+  // Pasada completa terminada: los valores derivados de precios ya pueden mostrarse
+  livePricesReady = true;
 
   const now = new Date().toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
   if (lastEl) lastEl.textContent = ok > 0
@@ -1145,15 +1158,17 @@ function renderYearly() {
   const grid = document.getElementById('yearly-grid');
   if (!grid) return;
   grid.innerHTML = yearlyPerf.map(d => {
+    // El año en curso depende de precios live: mostrar cargando hasta tenerlos
+    const loading  = (d.year === '2026') && !livePricesReady;
     const retColor = d.ret >= 0 ? 'green' : 'red';
     const retSign  = d.ret >= 0 ? '+' : '';
     return `
       <div class="yearly-card">
         <div class="year-label">${d.year}</div>
         <div class="year-tag">${d.tag}</div>
-        <div class="year-ret ${retColor}">${retSign}${d.ret.toFixed(1)}%</div>
+        <div class="year-ret ${retColor}">${loading ? LOADING_HTML : retSign + d.ret.toFixed(1) + '%'}</div>
         <div class="year-row"><span>Capital ingresado</span><span>$${fmt(d.deposits, 0)}</span></div>
-        <div class="year-row"><span>Valor fin de año</span><span>$${fmt(d.endVal, 0)}</span></div>
+        <div class="year-row"><span>Valor fin de año</span><span>${loading ? LOADING_HTML : '$' + fmt(d.endVal, 0)}</span></div>
         <div class="year-note">Posiciones: ${d.positions}<br>${d.note}</div>
       </div>`;
   }).join('');
@@ -1374,6 +1389,10 @@ function renderHeatmap(overrideVal) {
     html += `<tr><td class="year-col">${String(year).slice(2)}</td>`;
     monthlyReturns[year].forEach((val, mi) => {
       const isLive = (year === HEATMAP_CURRENT_YEAR && mi === HEATMAP_CURRENT_MONTH);
+      if (isLive && !livePricesReady) {
+        html += `<td class="heatmap-live-cell" title="${MONTH_LABELS[mi]} ${year} — cargando precios en vivo"><span class="live-dot"></span></td>`;
+        return;
+      }
       const displayVal = (isLive && overrideVal !== undefined) ? overrideVal : val;
       const c = heatColor(displayVal);
       if (displayVal === null) {
@@ -1541,6 +1560,9 @@ updateThemeBtn();
     fetchLivePrices();
   } else {
     // Sin API key no habrá precios live: mostrar valores snapshot de inmediato
+    livePricesReady = true;
+    renderYearly();
+    renderHeatmap();
     fillStaticCards();
     updateTotalCard();
     const dv = document.getElementById('day-chg-value');

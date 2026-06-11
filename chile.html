@@ -323,6 +323,11 @@ const portfolio = [
   { ticker:"ENELGXCH",   yahooTicker:"ENELGXCH",   name:"Enel Generación Chile S.A.",     shares:353,    buyPrice:566,     price:528,   value:186384,   pct:0.7,  ret:-6.7,  div:12291,   firstBuy:"2026-05-07" },
 ];
 
+// Indicador de carga: punto rojo EN VIVO + texto
+const LOADING_HTML = '<span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span>';
+// true cuando terminó la carga de precios live (o el usuario ingresó precios manualmente)
+let livePricesReady = false;
+
 // ── RENDIMIENTO POR AÑO (CLP) ────────────────────────────────────────────────
 // Metodología: Simple Dietz estimado. Sin datos TTWROR de plataforma externa.
 // Actualizar con valores de la corredora cuando estén disponibles.
@@ -361,15 +366,17 @@ function renderYearlyCLP() {
   const grid = document.getElementById('yearly-grid-clp');
   if (!grid) return;
   grid.innerHTML = yearlyPerfCLP.map(d => {
+    // El año en curso depende de precios live: mostrar cargando hasta tenerlos
+    const loading  = (d.year === '2026') && !livePricesReady;
     const retColor = d.ret >= 0 ? 'green' : 'red';
     const retSign  = d.ret >= 0 ? '+' : '';
     return `
       <div class="yearly-card">
         <div class="year-label">${d.year}</div>
         <div class="year-tag">${d.tag}</div>
-        <div class="year-ret ${retColor}">${retSign}${d.ret.toFixed(1)}%</div>
+        <div class="year-ret ${retColor}">${loading ? LOADING_HTML : retSign + d.ret.toFixed(1) + '%'}</div>
         <div class="year-row"><span>Capital ingresado</span><span>$${fmtCLP(d.deposits)}</span></div>
-        <div class="year-row"><span>Valor fin de año</span><span>$${fmtCLP(d.endVal)}</span></div>
+        <div class="year-row"><span>Valor fin de año</span><span>${loading ? LOADING_HTML : '$' + fmtCLP(d.endVal)}</span></div>
         <div class="year-note">Posiciones: ${d.positions}<br>${d.note}</div>
       </div>`;
   }).join('');
@@ -485,6 +492,10 @@ function renderHeatmapCLP(overrideVal) {
     html += `<tr><td class="year-col">${String(year).slice(2)}</td>`;
     monthlyReturnsCLP[year].forEach((val, mi) => {
       const isLive = (year === HEATMAP_CLP_YEAR && mi === HEATMAP_CLP_MONTH);
+      if (isLive && !livePricesReady) {
+        html += `<td class="heatmap-live-cell" title="${MONTH_LABELS_CLP[mi]} ${year} — cargando precios en vivo"><span class="live-dot"></span></td>`;
+        return;
+      }
       const displayVal = (isLive && overrideVal !== undefined) ? overrideVal : val;
       if (displayVal === null) {
         html += `<td class="hm-empty" title="${MONTH_LABELS_CLP[mi]} ${year} — sin datos">—</td>`;
@@ -685,6 +696,7 @@ function priceChanged(ticker, val) {
   const saved = JSON.parse(localStorage.getItem(PRICE_KEY) || '{}');
   saved[ticker] = n;
   localStorage.setItem(PRICE_KEY, JSON.stringify(saved));
+  livePricesReady = true; // precio ingresado manualmente cuenta como dato listo
   updateAll();
 }
 
@@ -710,6 +722,7 @@ function applyPrices() {
   const st = document.getElementById('price-status');
   if (st) st.textContent = `✓ ${updated} precio${updated !== 1 ? 's' : ''} actualizado${updated !== 1 ? 's' : ''} · ${new Date().toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'})}`;
   document.getElementById('price-input').value = '';
+  livePricesReady = true; // precios ingresados manualmente cuentan como datos listos
   updateAll();
 }
 
@@ -766,7 +779,12 @@ async function fetchLivePricesCHL() {
   const statusEl = document.getElementById('price-status');
   if (btn) btn.disabled = true;
   statusEl.style.color = 'var(--muted)';
+  livePricesReady = false;
   setCardSpinnersCHL();
+  renderYearlyCLP();
+  renderHeatmapCLP();
+  const hmTagLoad = document.getElementById('hm-live-tag-clp');
+  if (hmTagLoad) hmTagLoad.innerHTML = '<span class="live-dot"></span>Cargando precios en vivo…';
 
   const saved = JSON.parse(localStorage.getItem(PRICE_KEY) || '{}');
   let updated = 0;
@@ -783,6 +801,9 @@ async function fetchLivePricesCHL() {
     }
     if (i < portfolio.length - 1) await new Promise(r => setTimeout(r, 400));
   }
+
+  // Pasada completa terminada: los valores derivados de precios ya pueden mostrarse
+  livePricesReady = true;
 
   localStorage.setItem(PRICE_KEY, JSON.stringify(saved));
   const now = new Date().toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
@@ -845,7 +866,9 @@ function updateAll() {
   const liveMonthRet = parseFloat(((totalCash / MONTH_START_CLP - 1) * 100).toFixed(1));
   renderHeatmapCLP(liveMonthRet);
   const hmTag = document.getElementById('hm-live-tag-clp');
-  if (hmTag) hmTag.textContent = `● LIVE junio: ${liveMonthRet >= 0 ? '+' : ''}${liveMonthRet}%`;
+  if (hmTag) hmTag.innerHTML = livePricesReady
+    ? `● LIVE junio: ${liveMonthRet >= 0 ? '+' : ''}${liveMonthRet}%`
+    : '<span class="live-dot"></span>Cargando precios en vivo…';
 
   // Tarjeta anual 2026 — YTD live: encadena los meses cerrados con el mes en curso
   const ytdBaseCLP = monthlyReturnsCLP[HEATMAP_CLP_YEAR]
