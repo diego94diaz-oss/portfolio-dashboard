@@ -246,32 +246,32 @@
   <div class="cards">
     <div class="card">
       <div class="label">Valor total</div>
-      <div class="value" id="total-value"><span class="spinner card-spinner"></span></div>
+      <div class="value" id="total-value"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
       <div class="sub" id="total-value-sub">19 posiciones + efectivo</div>
     </div>
     <div class="card">
       <div class="label">Retorno total</div>
-      <div class="value green" id="total-return"><span class="spinner card-spinner"></span></div>
+      <div class="value green" id="total-return"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
       <div class="sub" id="total-return-sub">sobre costo</div>
     </div>
     <div class="card">
       <div class="label">Costo total</div>
-      <div class="value" id="total-cost"><span class="spinner card-spinner"></span></div>
+      <div class="value" id="total-cost"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
       <div class="sub">Dividendos cobrados: $78.60</div>
     </div>
     <div class="card">
       <div class="label">Variación del día</div>
-      <div class="value" id="day-chg-value"><span class="spinner card-spinner"></span></div>
-      <div class="sub" id="day-chg-sub"><span class="live-dot"></span>Cargando precios en vivo…</div>
+      <div class="value" id="day-chg-value"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
+      <div class="sub" id="day-chg-sub">Variación de hoy</div>
     </div>
     <div class="card">
       <div class="label">Efectivo disponible</div>
-      <div class="value blue" id="cash-value"><span class="spinner card-spinner"></span></div>
+      <div class="value blue" id="cash-value"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
       <div class="sub">IBK $1,794.50 &nbsp;·&nbsp; Zesty $2.17 &nbsp;·&nbsp; Racional $0</div>
     </div>
     <div class="card">
       <div class="label">Total combinado 🇺🇸+🇨🇱 (CLP)</div>
-      <div class="value blue" id="combined-clp-value"><span class="spinner card-spinner"></span></div>
+      <div class="value blue" id="combined-clp-value"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
       <div class="sub" id="combined-clp-sub">USD + CLP · tipo de cambio live</div>
     </div>
   </div>
@@ -549,9 +549,9 @@ const liveCache = {};
 // Mapa simple ticker → precio live (número puro, sin objetos)
 const livePx = {};
 
-// Indicador de carga reutilizable para las celdas de precio
-const LOADING_HTML = '<span class="loading-cell"><span class="spinner"></span>cargando…</span>';
-const CARD_SPINNER_HTML = '<span class="spinner card-spinner"></span>';
+// Indicador de carga reutilizable: punto rojo EN VIVO + texto
+const LOADING_HTML = '<span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span>';
+const CARD_SPINNER_HTML = LOADING_HTML;
 const LIVE_LOADING_HTML = '<span class="live-dot"></span>Cargando precios en vivo…';
 
 // Pone spinner en todas las tarjetas del resumen (mientras cargan los precios)
@@ -562,7 +562,7 @@ function setCardSpinners() {
       if (el) el.innerHTML = CARD_SPINNER_HTML;
     });
   const daySub = document.getElementById('day-chg-sub');
-  if (daySub) daySub.innerHTML = LIVE_LOADING_HTML;
+  if (daySub) daySub.textContent = 'Variación de hoy';
 }
 
 // Rellena las tarjetas que no dependen de precios live (costo y efectivo)
@@ -621,7 +621,7 @@ async function fetchLivePrices() {
     const lv = document.getElementById(`live-${p.ticker}`);
     const ch = document.getElementById(`chg-${p.ticker}`);
     if (lv) lv.innerHTML = LOADING_HTML;
-    if (ch) ch.innerHTML = '<span class="spinner"></span>';
+    if (ch) ch.innerHTML = LOADING_HTML;
   });
   if (lastEl) lastEl.textContent = 'Cargando precios...';
 
@@ -977,7 +977,7 @@ function renderTable() {
         <td>$${fmt(p.buyPrice)}</td>
         <td style="color:var(--muted)">$${fmt(p.price)}</td>
         <td id="live-${p.ticker}">${LOADING_HTML}</td>
-        <td id="chg-${p.ticker}"><span class="spinner"></span></td>
+        <td id="chg-${p.ticker}">${LOADING_HTML}</td>
         ${targetCell}
         ${upsideCell}
         <td id="val-${p.ticker}"><strong>$${fmt(p.value, 0)}</strong></td>
@@ -1141,7 +1141,7 @@ const yearlyPerf = [
   },
 ];
 
-(function renderYearly() {
+function renderYearly() {
   const grid = document.getElementById('yearly-grid');
   if (!grid) return;
   grid.innerHTML = yearlyPerf.map(d => {
@@ -1157,7 +1157,8 @@ const yearlyPerf = [
         <div class="year-note">Posiciones: ${d.positions}<br>${d.note}</div>
       </div>`;
   }).join('');
-})();
+}
+renderYearly();
 
 // ── GRÁFICO DE EVOLUCIÓN ──────────────────────────────────────────────────────
 // Puntos históricos estimados con precios de cierre de cada período.
@@ -1452,6 +1453,18 @@ function updateAllLive(liveTotal) {
   renderHeatmap(liveMonthRet);
   const hmTag = document.getElementById('hm-live-tag');
   if (hmTag) hmTag.textContent = `● LIVE junio: ${liveMonthRet >= 0 ? '+' : ''}${liveMonthRet}%`;
+
+  // 4b. Tarjeta anual 2026 — YTD live: encadena los meses cerrados con el mes en curso
+  const ytdBase = monthlyReturns[HEATMAP_CURRENT_YEAR]
+    .slice(0, HEATMAP_CURRENT_MONTH)
+    .reduce((acc, v) => acc * (1 + (v || 0) / 100), 1);
+  const y2026 = yearlyPerf.find(d => d.year === '2026');
+  if (y2026) {
+    y2026.ret    = parseFloat(((ytdBase * (liveTotal / MONTH_START_VALUE) - 1) * 100).toFixed(1));
+    y2026.endVal = Math.round(liveTotal);
+    y2026.note   = 'Equity + efectivo · actualizado con precios live.';
+    renderYearly();
+  }
 
   // 5. Valor mercado vs Costo — top 10 por valor live
   if (chartCost) {

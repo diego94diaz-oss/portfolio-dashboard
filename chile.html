@@ -34,6 +34,7 @@
     .card-spinner { width: 18px; height: 18px; border-width: 3px; vertical-align: middle; }
     .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block; margin-right: 6px; animation: livePulse 1.2s ease-in-out infinite; }
     @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+    .loading-cell { display: inline-flex; align-items: center; color: var(--muted); font-size: 11px; font-weight: 400; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; }
 
@@ -174,32 +175,32 @@
   <div class="cards">
     <div class="card">
       <div class="label">Valor total</div>
-      <div class="value" id="card-total"><span class="spinner card-spinner"></span></div>
+      <div class="value" id="card-total"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
       <div class="sub" id="card-total-sub">13 posiciones</div>
     </div>
     <div class="card">
       <div class="label">Retorno total</div>
-      <div class="value" id="card-ret"><span class="spinner card-spinner"></span></div>
+      <div class="value" id="card-ret"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
       <div class="sub" id="card-ret-sub">sobre costo</div>
     </div>
     <div class="card">
       <div class="label">Costo total</div>
-      <div class="value" id="card-cost"><span class="spinner card-spinner"></span></div>
+      <div class="value" id="card-cost"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
       <div class="sub">Capital invertido en posiciones activas</div>
     </div>
     <div class="card">
       <div class="label">Dividendos + Intereses</div>
-      <div class="value green" id="card-div"><span class="spinner card-spinner"></span></div>
+      <div class="value green" id="card-div"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
       <div class="sub">Historial completo 2023–2026</div>
     </div>
     <div class="card">
       <div class="label">Efectivo disponible</div>
-      <div class="value blue" id="card-cash"><span class="spinner card-spinner"></span></div>
+      <div class="value blue" id="card-cash"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
       <div class="sub">Cuenta ITAU BCS</div>
     </div>
     <div class="card">
       <div class="label">Retorno incl. dividendos</div>
-      <div class="value" id="card-ret-div"><span class="spinner card-spinner"></span></div>
+      <div class="value" id="card-ret-div"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
       <div class="sub" id="card-ret-div-sub">sobre costo</div>
     </div>
     <div class="card">
@@ -356,7 +357,7 @@ const yearlyPerfCLP = [
   },
 ];
 
-(function renderYearlyCLP() {
+function renderYearlyCLP() {
   const grid = document.getElementById('yearly-grid-clp');
   if (!grid) return;
   grid.innerHTML = yearlyPerfCLP.map(d => {
@@ -372,7 +373,8 @@ const yearlyPerfCLP = [
         <div class="year-note">Posiciones: ${d.positions}<br>${d.note}</div>
       </div>`;
   }).join('');
-})();
+}
+renderYearlyCLP();
 
 // ── GRÁFICO DE EVOLUCIÓN (CLP) ────────────────────────────────────────────────
 // Puntos históricos estimados. Último punto actualiza con precios live.
@@ -755,7 +757,7 @@ function setCardSpinnersCHL() {
   ['card-total', 'card-ret', 'card-cost', 'card-div', 'card-cash', 'card-ret-div', 'combined-clp-value']
     .forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = '<span class="spinner card-spinner"></span>';
+      if (el) el.innerHTML = '<span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span>';
     });
 }
 
@@ -844,6 +846,17 @@ function updateAll() {
   renderHeatmapCLP(liveMonthRet);
   const hmTag = document.getElementById('hm-live-tag-clp');
   if (hmTag) hmTag.textContent = `● LIVE junio: ${liveMonthRet >= 0 ? '+' : ''}${liveMonthRet}%`;
+
+  // Tarjeta anual 2026 — YTD live: encadena los meses cerrados con el mes en curso
+  const ytdBaseCLP = monthlyReturnsCLP[HEATMAP_CLP_YEAR]
+    .slice(0, HEATMAP_CLP_MONTH)
+    .reduce((acc, v) => acc * (1 + (v || 0) / 100), 1);
+  const y2026CLP = yearlyPerfCLP.find(d => d.year === '2026');
+  if (y2026CLP) {
+    y2026CLP.ret    = parseFloat(((ytdBaseCLP * (totalCash / MONTH_START_CLP) - 1) * 100).toFixed(1));
+    y2026CLP.endVal = Math.round(totalCash);
+    renderYearlyCLP();
+  }
 
   // Total combinado USD + CLP
   renderCombinedCLP({ clp: totalCash });
