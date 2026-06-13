@@ -11,7 +11,7 @@ Dashboard HTML estático para seguimiento de portafolio USD y CLP.
 
 - Repositorio público.
 - La API key de Finnhub se ingresa desde la interfaz y se guarda en `localStorage`; no hay key hardcodeada.
-- El HTML contiene posiciones y transacciones embebidas. Para uso público permanente, conviene migrar esos datos a archivos privados/generados o datos ficticios.
+- El HTML versionado contiene datos ficticios de demo; las posiciones reales deben mantenerse fuera del repositorio o inyectarse desde archivos locales no versionados.
 
 ## Uso
 

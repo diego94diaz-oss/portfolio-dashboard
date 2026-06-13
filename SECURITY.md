@@ -4,7 +4,7 @@ Este repositorio es público y contiene información financiera de portafolio.
 
 ## Riesgos actuales
 
-- Las posiciones, cantidades, precios promedio, efectivo y transacciones embebidas permiten inferir patrimonio e historial de inversión.
+- El historial Git anterior a esta limpieza puede contener posiciones reales; si quieres eliminarlo completamente del repositorio público, hay que hacer una purga de historial con coordinación especial.
 - La API key de Finnhub no está hardcodeada, pero se guarda en `localStorage` del navegador.
 
 ## Checklist antes de publicar cambios
