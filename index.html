@@ -231,7 +231,7 @@
 <header>
   <h1>📊 Portfolio Analyst Dashboard</h1>
   <div style="display:flex;align-items:center;gap:12px">
-    <span>Datos base: 02-jun-2026 · precios live al actualizar &nbsp;|&nbsp; Broker: IBK / Racional / Zesty</span>
+    <span>Datos demo · precios live al actualizar &nbsp;|&nbsp; Reemplazar por datos locales privados</span>
     <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Alternar modo claro/oscuro">☀️</button>
   </div>
 </header>
@@ -276,7 +276,7 @@
     <div class="card">
       <div class="label">Efectivo disponible</div>
       <div class="value blue" id="cash-value"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
-      <div class="sub">IBK $128.54 &nbsp;·&nbsp; Zesty $2.17 &nbsp;·&nbsp; Racional $0</div>
+      <div class="sub">Demo pública · datos reales fuera del repositorio</div>
     </div>
     <div class="card">
       <div class="label">Total combinado 🇺🇸+🇨🇱 (CLP)</div>
@@ -287,8 +287,7 @@
 
   <!-- ALERTS (renderizado dinámico por JS) -->
   <div class="alerts" id="alerts-bar">
-    <div class="alert">⚠️ <span>ASTS</span> — 22.2% del portafolio total (umbral: 20%)</div>
-    <div class="alert">⚠️ <span>GOOGL</span> — 22.2% del portafolio total (umbral: 20%)</div>
+    <div class="alert">ℹ️ <span>DEMO</span> — datos ficticios para vista pública</div>
   </div>
 
   <!-- YEARLY RETURNS -->
@@ -441,25 +440,7 @@
 // ── DATA ──────────────────────────────────────────────────────────────────────
 
 const portfolio = [
-  { ticker:"ASTS",     name:"AST SpaceMobile",            shares:87.44,   buyPrice:22.18,   price:105.86, value:9256.85, pct:22.2, ret:376.6,  alert:true,  firstBuy:"2025-04-03" },
-  { ticker:"GOOGL",    name:"Alphabet Inc",                shares:24.1,    buyPrice:154.56,  price:382.97, value:9231.04, pct:22.2, ret:134.5,  alert:true,  firstBuy:"2024-09-12" },
-  { ticker:"ASST",     name:"Strive Inc",                  shares:531.8282, buyPrice:14.429, price:13.58,  value:7222.23, pct:17.3, ret:-5.9,   alert:false, firstBuy:"2025-12-26" },
-  { ticker:"LDI",      name:"loanDepot Inc",               shares:5387.0476, buyPrice:1.2035, price:1.17701, value:6340.61, pct:15.2, ret:-2.2,  alert:false, firstBuy:"2026-05-12" },
-  { ticker:"NVO",      name:"Novo Nordisk",                shares:29.27,   buyPrice:60.47,   price:43.8,   value:1282.06, pct:3.1,  ret:-27.1,  alert:false, firstBuy:"2025-06-26" },
-  { ticker:"NIO",      name:"NIO Inc ADR",                 shares:207.28,  buyPrice:4.82,    price:5.2,    value:1077.84, pct:2.6,  ret:7.6,    alert:false, firstBuy:"2026-01-05" },
-  { ticker:"MSTR",     name:"Strategy Inc",                shares:13.9139, buyPrice:142.13,  price:137.857, value:1918.13, pct:4.6,  ret:-3.0,   alert:false, firstBuy:"2026-01-27" },
-  { ticker:"MELI",     name:"MercadoLibre",                shares:0.548,   buyPrice:1825.49, price:1664.42,value:911.77,  pct:2.2,  ret:-8.8,   alert:false, firstBuy:"2026-04-22" },
-  { ticker:"IIPR",     name:"Innovative Industrial Prop.", shares:10.815,  buyPrice:45.62,   price:57.06,  value:617.1,   pct:1.5,  ret:24.7,   alert:false, firstBuy:"2026-02-23" },
-  { ticker:"PEP",      name:"PepsiCo Inc",                 shares:4.047,   buyPrice:157.85,  price:150.57, value:609.37,  pct:1.5,  ret:3.5,    alert:false, firstBuy:"2024-11-18" },
-  { ticker:"FLWS",     name:"1-800-Flowers.com",           shares:136.99,  buyPrice:3.65,    price:4.34,   value:594.52,  pct:1.4,  ret:18.7,   alert:false, firstBuy:"2025-10-31" },
-  { ticker:"CRM",      name:"Salesforce Inc",              shares:2.6946,  buyPrice:185.0,   price:180.07, value:485.22,  pct:1.2,  ret:-2.9,   alert:false, firstBuy:"2026-05-06" },
-  { ticker:"TROW",     name:"T. Rowe Price Group",         shares:4.4749,  buyPrice:89.12,   price:103.39, value:462.66,  pct:1.1,  ret:15.7,   alert:false, firstBuy:"2026-03-30" },
-  { ticker:"MSFT",     name:"Microsoft Corp",              shares:0.8302,  buyPrice:360.27,  price:418.57, value:347.5,   pct:0.8,  ret:15.8,   alert:false, firstBuy:"2026-03-30" },
-  { ticker:"ADBE",     name:"Adobe Inc",                   shares:1.4166,  buyPrice:352.93,  price:244.76, value:346.73,  pct:0.8,  ret:-30.9,  alert:false, firstBuy:"2025-09-22" },
-  { ticker:"AMZN",     name:"Amazon.com",                  shares:0.8902,  buyPrice:207.38,  price:266.32, value:237.07,  pct:0.6,  ret:35.6,   alert:false, firstBuy:"2026-02-06" },
-  { ticker:"ASST-VRS", name:"Strive Variable Rate Sec.",   shares:2.0,     buyPrice:95.2,    price:100.01, value:200.02,  pct:0.5,  ret:4.7,    alert:false, firstBuy:"2026-01-30" },
-  { ticker:"MSTR-VRS", name:"Strategy Variable Rate Sec.", shares:2.0,     buyPrice:98.95,   price:99.3,   value:198.6,   pct:0.5,  ret:0.1,    alert:false, firstBuy:"2026-01-30" },
-  { ticker:"NKE",      name:"Nike Inc",                    shares:3.867,   buyPrice:51.56,   price:44.67,  value:172.74,  pct:0.4,  ret:-13.6,  alert:false, firstBuy:"2026-03-30" },
+  { ticker:"DEMO", name:"Empresa Demo", shares:10, buyPrice:100, price:112, value:1120, pct:100, ret:12, target:130, upside:16.1, div:0, firstBuy:"2026-01-01" }
 ];
 
 // Calcula retorno anualizado: (1 + ret%)^(365/días) - 1
@@ -469,82 +450,14 @@ function annualRet(p) {
 }
 
 const recommendations = [
-  { ticker:"ASTS", upside:-21.2, signal:"sell", target:83.47, currentPrice:105.86, analysts:9,
-    fundamento:"Upside de -21.2% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"TROW", upside:-5.8, signal:"sell", target:97.42, currentPrice:103.39, analysts:12,
-    fundamento:"Upside de -5.8% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"MSTR", upside:176.2, signal:"buy", target:380.79, currentPrice:137.857, analysts:14,
-    fundamento:"Upside de 176.2% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"ASST", upside:113.5, signal:"buy", target:29.00, currentPrice:13.58, analysts:4,
-    fundamento:"Upside de 113.5% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"CRM", upside:45.7, signal:"buy", target:262.27, currentPrice:180.07, analysts:53,
-    fundamento:"Upside de 45.7% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"LDI", upside:52.9, signal:"buy", target:1.80, currentPrice:1.17701, analysts:2,
-    fundamento:"Upside de 52.9% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"NKE", upside:36.1, signal:"buy", target:60.78, currentPrice:44.67, analysts:33,
-    fundamento:"Upside de 36.1% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"MELI", upside:34.0, signal:"buy", target:2230.28, currentPrice:1664.42, analysts:25,
-    fundamento:"Upside de 34.0% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"MSFT", upside:33.9, signal:"buy", target:560.63, currentPrice:418.57, analysts:54,
-    fundamento:"Upside de 33.9% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"ADBE", upside:33.7, signal:"buy", target:327.28, currentPrice:244.76, analysts:34,
-    fundamento:"Upside de 33.7% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"NIO", upside:33.2, signal:"buy", target:6.93, currentPrice:5.20, analysts:24,
-    fundamento:"Upside de 33.2% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"FLWS", upside:26.7, signal:"hold", target:5.50, currentPrice:4.34, analysts:2,
-    fundamento:"Upside de 26.7% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"AMZN", upside:17.4, signal:"hold", target:312.63, currentPrice:266.32, analysts:62,
-    fundamento:"Upside de 17.4% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"PEP", upside:13.6, signal:"hold", target:171.05, currentPrice:150.57, analysts:21,
-    fundamento:"Upside de 13.6% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"GOOGL", upside:12.0, signal:"hold", target:429.12, currentPrice:382.97, analysts:53,
-    fundamento:"Upside de 12.0% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"IIPR", upside:9.4, signal:"hold", target:62.40, currentPrice:57.06, analysts:4,
-    fundamento:"Upside de 9.4% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
-  { ticker:"NVO", upside:6.9, signal:"hold", target:46.82, currentPrice:43.80, analysts:12,
-    fundamento:"Upside de 4.1% respecto al precio objetivo de consenso de analistas.",
-    riesgo:"Revisar si el precio objetivo fue actualizado recientemente." },
+  { ticker:"DEMO", rec:"MANTENER", upside:16.1, target:130, note:"Dato ficticio para demo pública.", risk:"Reemplazar por análisis real en uso privado." }
 ];
 
 const transactions = [
-  { date:"2026-06-05", asset:"LDI — loanDepot",       type:"Compra",  shares:"560.7432", price:"$1.18",    amount:"$663"   },
-  { date:"2026-06-05", asset:"ASST — Strive",         type:"Compra",  shares:"36.8182", price:"$13.58",    amount:"$501"   },
-  { date:"2026-06-03", asset:"LDI — loanDepot",       type:"Compra",  shares:"431.0344", price:"$1.16",    amount:"$502"   },
-  { date:"2026-06-02", asset:"MSTR — Strategy",       type:"Compra",  shares:"7.2539",  price:"$137.86",   amount:"$1,001" },
-  { date:"2026-05-24", asset:"CNC — Centene",         type:"Venta",   shares:"43.36",   price:"$58.33",    amount:"$2,528" },
-  { date:"2026-05-19", asset:"LDI — loanDepot",       type:"Compra",  shares:"434.78",  price:"$1.15",     amount:"$502"   },
-  { date:"2026-05-19", asset:"LDI — loanDepot",       type:"Compra",  shares:"431.03",  price:"$1.16",     amount:"$502"   },
-  { date:"2026-05-19", asset:"LDI — loanDepot",       type:"Compra",  shares:"427.35",  price:"$1.17",     amount:"$502"   },
-  { date:"2026-05-18", asset:"LDI — loanDepot",       type:"Compra",  shares:"834.72",  price:"$1.20",     amount:"$1,004" },
-  { date:"2026-05-15", asset:"UNH — UnitedHealth",    type:"Venta",   shares:"5.34",    price:"$393.85",   amount:"$2,103" },
-  { date:"2026-05-15", asset:"OSCR — Oscar Health",   type:"Venta",   shares:"70.69",   price:"$23.10",    amount:"$1,632" },
-  { date:"2026-05-13", asset:"LDI — loanDepot",       type:"Compra",  shares:"665.36",  price:"$1.24",     amount:"$825"   },
-  { date:"2026-05-12", asset:"LDI — loanDepot",       type:"Compra",  shares:"406.56",  price:"$1.26",     amount:"$514"   },
-  { date:"2026-05-06", asset:"CRM — Salesforce",      type:"Compra",  shares:"2.69",    price:"$185.00",   amount:"$500"   },
-  { date:"2026-04-28", asset:"MELI — MercadoLibre",   type:"Compra",  shares:"0.28",    price:"$1,799.13", amount:"$500"   },
-  { date:"2026-04-21", asset:"ASML — ASML Holding",   type:"Venta",   shares:"1.23",    price:"$1,442.18", amount:"$1,773" },
-  { date:"2026-04-21", asset:"SKYH — Sky Harbour",    type:"Venta",   shares:"46.55",   price:"$11.00",    amount:"$511"   },
-  { date:"2026-03-31", asset:"PEP — PepsiCo",         type:"Dividendo",shares:"—",      price:"—",         amount:"$4.90"  },
-  { date:"2026-03-30", asset:"TROW — T. Rowe Price",  type:"Compra",  shares:"4.47",    price:"$89.12",    amount:"$400"   },
+  { date:"2026-01-01", tipo:"Compra", ticker:"DEMO", name:"Empresa Demo", shares:10, unitPrice:100, amount:-1000 }
 ];
 
-const CASH = 130.71; // tras compras LDI+ASST 03/05-jun (-$1,665.96). Previo $1,796.67 (IBK $128.54 + Zesty $2.17)
+const CASH = 0; // demo pública: efectivo real no versionado
 const totalEquity = portfolio.reduce((s, p) => s + p.value, 0);
 const totalWithCash = totalEquity + CASH;
 
@@ -1149,34 +1062,7 @@ transactions.forEach(t => {
 // Encadena sub-períodos entre cada flujo de efectivo, eliminando el efecto del
 // tamaño y timing de los depósitos. Valores provistos por plataforma externa.
 const yearlyPerf = [
-  {
-    year: '2023', tag: 'parcial · Jul–Dic',
-    ret: 5.6,
-    deposits: 604.55, endVal: 649,
-    positions: 'DIS (Walt Disney)',
-    note: '167 días. Primera inversión del portafolio.'
-  },
-  {
-    year: '2024', tag: 'Ene–Dic',
-    ret: 75.7,
-    deposits: 3302, endVal: 4487,
-    positions: 'GOOGL · CELH · ASML · PEP',
-    note: 'Sub-períodos encadenados: DIS +25% → AAPL +27% → PEP +8% → GOOGL.'
-  },
-  {
-    year: '2025', tag: 'Ene–Dic',
-    ret: 82.1,
-    deposits: 11584, endVal: 21056,
-    positions: 'ASTS · UNH · CNC · NAGARRO · NVO · ADBE...',
-    note: 'ASTS comprado a ~$22. Valor dic-2025 estimado con precios históricos.'
-  },
-  {
-    year: '2026', tag: 'YTD · Ene–Jun',
-    ret: 34.6,
-    deposits: 6041, endVal: 41643,
-    positions: 'NIO · MSTR · IIPR · CRM · MELI · LDI...',
-    note: 'Equity $41,512 + efectivo $131. Snapshot 05-jun-2026.'
-  },
+  { year:2026, ret:12.0, twror:12.0, flow:1000, endValue:1120, note:"Demo" }
 ];
 
 function renderYearly() {
@@ -1204,19 +1090,8 @@ renderYearly();
 // Puntos históricos estimados con precios de cierre de cada período.
 // El último punto (mes en curso) se actualiza automáticamente con precios live.
 const portfolioHistory = [
-  { label: 'Jul 2023',  value:   605 },  // primera compra: DIS
-  { label: 'Dic 2023',  value:   649 },  // DIS fin de año
-  { label: 'Abr 2024',  value:  1050 },  // DIS vendida → AAPL
-  { label: 'Sep 2024',  value:  2800 },  // GOOGL + CELH + depósitos
-  { label: 'Dic 2024',  value:  4487 },  // cierre 2024
-  { label: 'Mar 2025',  value:  8800 },  // acumulación GOOGL + depósitos fuertes
-  { label: 'Jun 2025',  value: 12500 },  // ASTS iniciado, CELH cerrada
-  { label: 'Sep 2025',  value: 16500 },  // UNH, CNC, NAGARRO + ASTS apreciado
-  { label: 'Dic 2025',  value: 21056 },  // cierre 2025
-  { label: 'Feb 2026',  value: 24500 },  // NIO, MSTR, Strive, IIPR
-  { label: 'Mar 2026',  value: 28000 },  // TROW, MSFT, NKE + depósitos
-  { label: 'May 2026',  value: 44402 },  // cierre mayo: equity $41,604 + efectivo $2,798
-  { label: 'Jun 2026',  value: 41643 },  // mes en curso · se actualiza con precios live
+  { date:"2026-01-01", value:1000, flow:1000 },
+  { date:"2026-06-01", value:1120, flow:0 }
 ];
 
 let chartHistory;
@@ -1529,7 +1404,7 @@ function updateAllLive(liveTotal) {
 // Cada dashboard guarda su propio total en localStorage (mismo origen) para que
 // el otro lo lea. El tipo de cambio USD/CLP se obtiene en vivo (sin API key).
 const FX_FALLBACK  = 950;        // USD/CLP de respaldo si fallan las APIs
-const USD_FALLBACK = 41643;      // total portafolio USD de respaldo (snapshot 2026-06-05)
+const USD_FALLBACK = 1120;       // demo pública
 const CLP_FALLBACK = 26243618;   // total portafolio CLP de respaldo (snapshot)
 let _usdClpRate = null, _usdClpRateTs = 0;
 

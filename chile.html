@@ -150,7 +150,7 @@
 <header>
   <div>
     <h1>🇨🇱 Portfolio CLP — Acciones Chilenas</h1>
-    <span>Bolsa de Santiago (BCS) &nbsp;·&nbsp; Datos base: 28-may-2026 · precios live al cargar</span>
+    <span>Bolsa de Santiago (BCS) &nbsp;·&nbsp; Datos demo · precios live al cargar</span>
   </div>
   <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Alternar modo claro/oscuro">☀️</button>
 </header>
@@ -165,7 +165,7 @@
   <button id="btn-live" onclick="fetchLivePricesCHL()">🔄 Actualizar precios live</button>
   <span class="status" id="price-status">Fuente: Yahoo Finance · Sin API key requerida · También podés editar cada celda directamente</span>
   <div style="display:flex;gap:8px;margin-left:auto;align-items:center">
-    <input id="price-input" placeholder="COLBUN:112 ILC:8500 ..." style="min-width:200px" />
+    <input id="price-input" placeholder="DEMOCLP:1100 ..." style="min-width:200px" />
     <button onclick="applyPrices()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text)">Aplicar</button>
   </div>
 </div>
@@ -197,7 +197,7 @@
     <div class="card">
       <div class="label">Efectivo disponible</div>
       <div class="value blue" id="card-cash"><span class="loading-cell"><span class="live-dot"></span>Cargando precios en vivo…</span></div>
-      <div class="sub">Cuenta ITAU BCS</div>
+      <div class="sub">Demo pública · datos reales fuera del repositorio</div>
     </div>
     <div class="card">
       <div class="label">Retorno incl. dividendos</div>
@@ -308,19 +308,7 @@
 // Precios actualizados al 28-may-2026 vía Yahoo Finance
 // yahooTicker: ticker en Yahoo Finance cuando difiere del ticker interno
 const portfolio = [
-  { ticker:"ILC",        yahooTicker:"ILC",        name:"Inv. La Construcción S.A.",      shares:280,    buyPrice:7663,    price:22350, value:6258000,  pct:25.2, ret:191.7, div:408800,  firstBuy:"2024-07-02" },
-  { ticker:"COLBUN",     yahooTicker:"COLBUN",     name:"Colbún S.A.",                    shares:43947,  buyPrice:122.59,  price:134,   value:5888898,  pct:23.7, ret:9.3,   div:553561,  firstBuy:"2024-04-09" },
-  { ticker:"LIPIGAS",    yahooTicker:"LIPIGAS",    name:"Empresas Lipigas S.A.",           shares:375,    buyPrice:2691,    price:8339,  value:3127125,  pct:12.6, ret:209.9, div:412500,  firstBuy:"2023-08-31" },
-  { ticker:"INVERCAP",   yahooTicker:"INVERCAP",   name:"Invercap S.A.",                   shares:1046,   buyPrice:1909,    price:1966,  value:2056636,  pct:8.3,  ret:3.0,   div:0,       firstBuy:"2024-01-05" },
-  { ticker:"NUAM",       yahooTicker:"NUAM",       name:"Holding Bursátil Regional S.A.", shares:400,    buyPrice:4082,    price:5020,  value:2008000,  pct:8.1,  ret:23.0,  div:222446,  firstBuy:"2024-03-25" },
-  { ticker:"HABITAT",    yahooTicker:"HABITAT",    name:"AFP Habitat S.A.",               shares:1299,   buyPrice:1036,    price:1364,  value:1771836,  pct:7.1,  ret:31.7,  div:170230,  firstBuy:"2024-10-21" },
-  { ticker:"BICECORP",   yahooTicker:"BICE",       name:"Bicecorp S.A.",                  shares:3894,   buyPrice:276.43,  price:386,   value:1503084,  pct:6.0,  ret:39.6,  div:128308,  firstBuy:"2025-03-04" },
-  { ticker:"QUINENCO",   yahooTicker:"QUINENCO",   name:"Quiñenco S.A.",                  shares:150,    buyPrice:4176,    price:4100,  value:615000,   pct:2.5,  ret:-1.8,  div:36300,   firstBuy:"2026-02-16" },
-  { ticker:"CFINRENTAS", yahooTicker:"CFINRENTAS", name:"Independencia Adm. Gral. S.A.", shares:282,    buyPrice:1417,    price:2224,  value:627168,   pct:2.5,  ret:57.0,  div:25380,   firstBuy:"2025-01-09" },
-  { ticker:"ITAUCL",     yahooTicker:"ITAUCL",     name:"Banco Itaú Chile S.A.",          shares:16,     buyPrice:18336,   price:17650, value:282400,   pct:1.1,  ret:-3.7,  div:0,       firstBuy:"2026-05-07" },
-  { ticker:"EMBONOR-B",  yahooTicker:"EMBONOR-B",  name:"Coca-Cola Embonor S.A.",         shares:168,    buyPrice:1184,    price:1642,  value:275856,   pct:1.1,  ret:38.7,  div:29400,   firstBuy:"2024-10-16" },
-  { ticker:"SOQUICOM",   yahooTicker:"SOQUICOM",   name:"Soquicom S.A.",                  shares:672,    buyPrice:372,     price:379,   value:254688,   pct:1.0,  ret:1.9,   div:16952,   firstBuy:"2026-02-10" },
-  { ticker:"ENELGXCH",   yahooTicker:"ENELGXCH",   name:"Enel Generación Chile S.A.",     shares:353,    buyPrice:566,     price:528,   value:186384,   pct:0.7,  ret:-6.7,  div:12291,   firstBuy:"2026-05-07" },
+  { ticker:"DEMOCLP", yahooTicker:"DEMOCLP", name:"Empresa Demo Chile S.A.", shares:100, buyPrice:1000, price:1100, value:110000, pct:100, ret:10, div:0, firstBuy:"2026-01-01" }
 ];
 
 // Indicador de carga: punto rojo EN VIVO + texto
@@ -338,34 +326,7 @@ const CHART_GRID = 'rgba(122,127,153,0.18)'; // gris neutro, visible en ambos te
 // Metodología: Simple Dietz estimado. Sin datos TTWROR de plataforma externa.
 // Actualizar con valores de la corredora cuando estén disponibles.
 const yearlyPerfCLP = [
-  {
-    year: '2023', tag: 'parcial · May–Dic',
-    ret: 2.0,
-    deposits: 7005273, endVal: 7500000,
-    positions: 'AAISA · ANDINA-B · LIPIGAS · SECURITY · CAP · CCU · SQM-B',
-    note: 'Primer año parcial. Pérdida en CAP compensada. Retorno estimado.'
-  },
-  {
-    year: '2024', tag: 'Ene–Dic',
-    ret: 12.0,
-    deposits: 8595590, endVal: 14000000,
-    positions: 'COLBUN · ILC · INVERCAP · NUAM · EMBONOR-B · HABITAT · CFINRENTAS',
-    note: 'Reorganización: venta CCU, inicio COLBUN, ILC, NUAM. Retorno estimado.'
-  },
-  {
-    year: '2025', tag: 'Ene–Dic',
-    ret: 22.0,
-    deposits: 0, endVal: 18000000,
-    positions: 'BICECORP · consolidación posiciones',
-    note: 'Venta SECURITY, ANDINA-B, BCI. Apreciación COLBUN, ILC, LIPIGAS. Estimado.'
-  },
-  {
-    year: '2026', tag: 'YTD · Ene–Jun',
-    ret: 55.0,
-    deposits: -2000000, endVal: 26244000,
-    positions: 'SOQUICOM · QUINENCO · ENELGXCH · ITAUCL · venta SQM-B',
-    note: 'ILC +191% · LIPIGAS +210% · Efectivo $1.39M. Retorno estimado.'
-  },
+  { year:2026, ret:10.0, flow:100000, endValue:110000, note:"Demo" }
 ];
 
 function renderYearlyCLP() {
@@ -392,18 +353,8 @@ renderYearlyCLP();
 // ── GRÁFICO DE EVOLUCIÓN (CLP) ────────────────────────────────────────────────
 // Puntos históricos estimados. Último punto actualiza con precios live.
 const portfolioHistoryCLP = [
-  { label: 'May 2023',  value:   299642 },   // primera compra: AAISA
-  { label: 'Nov 2023',  value:  6700000 },   // CAP vendida, CCU/SQM-B/SECURITY
-  { label: 'Dic 2023',  value:  7500000 },   // cierre 2023
-  { label: 'Jun 2024',  value:  9500000 },   // COLBUN, ILC iniciados; AAISA vendida
-  { label: 'Oct 2024',  value: 13000000 },   // EMBONOR-B, HABITAT, CFINRENTAS
-  { label: 'Dic 2024',  value: 14000000 },   // cierre 2024
-  { label: 'Mar 2025',  value: 15000000 },   // BICECORP; venta SECURITY/ANDINA-B/BCI
-  { label: 'Dic 2025',  value: 18000000 },   // cierre 2025 (estimado)
-  { label: 'Feb 2026',  value: 16500000 },   // venta SQM-B, retirada -$2M
-  { label: 'Abr 2026',  value: 19000000 },   // SOQUICOM, QUINENCO, ENELGXCH, ITAUCL
-  { label: 'May 2026',  value: 26244000 },   // cierre mayo (snapshot 28-may)
-  { label: 'Jun 2026',  value: 26244000 },   // ← mes en curso · actualiza con precios live (equity+cash)
+  { date:"2026-01-01", value:100000, flow:100000 },
+  { date:"2026-06-01", value:110000, flow:0 }
 ];
 
 let chartHistoryCLP;
@@ -523,154 +474,13 @@ renderHeatmapCLP();
 // ── TRANSACCIONES — datos exactos del CSV exportado desde la plataforma ───────
 // Precio = precio por acción del CSV · Monto = Valor neto de transacción
 const transactions = [
-  // ── Dividendos mayo 2026 ─────────────────────────────────────────────────────
-  { date:"2026-05-28", tipo:"Dividendo", ticker:"ILC",       name:"Inv. La Construcción S.A.",      shares:280,  unitPrice:null, amount:239962 },
-  { date:"2026-05-28", tipo:"Dividendo", ticker:"ILC",       name:"Inv. La Construcción S.A.",      shares:280,  unitPrice:null, amount:838 },
-  { date:"2026-05-19", tipo:"Dividendo", ticker:"EMBONOR-B", name:"Coca-Cola Embonor S.A.",         shares:168,  unitPrice:null, amount:8894 },
-  { date:"2026-05-19", tipo:"Dividendo", ticker:"EMBONOR-B", name:"Coca-Cola Embonor S.A.",         shares:168,  unitPrice:null, amount:2362 },
-  { date:"2026-05-15", tipo:"Dividendo", ticker:"HABITAT",   name:"AFP Habitat S.A.",               shares:1299, unitPrice:null, amount:77940 },
-  { date:"2026-05-15", tipo:"Dividendo", ticker:"ENELGXCH",  name:"Enel Generación Chile S.A.",     shares:353,  unitPrice:null, amount:12291 },
-  { date:"2026-05-15", tipo:"Dividendo", ticker:"COLBUN",    name:"Colbún S.A.",                   shares:43947,unitPrice:null, amount:35198 },
-  { date:"2026-05-15", tipo:"Dividendo", ticker:"SOQUICOM",  name:"Soquicom S.A.",                 shares:672,  unitPrice:null, amount:16952 },
-  { date:"2026-05-15", tipo:"Dividendo", ticker:"QUINENCO",  name:"Quiñenco S.A.",                 shares:150,  unitPrice:null, amount:29788 },
-  { date:"2026-05-15", tipo:"Dividendo", ticker:"QUINENCO",  name:"Quiñenco S.A.",                 shares:150,  unitPrice:null, amount:6512 },
-  { date:"2026-05-14", tipo:"Dividendo", ticker:"BICECORP",  name:"Bicecorp S.A.",                 shares:3894, unitPrice:null, amount:24397 },
-  { date:"2026-05-14", tipo:"Dividendo", ticker:"BICECORP",  name:"Bicecorp S.A.",                 shares:3894, unitPrice:null, amount:16296 },
-  { date:"2026-05-07", tipo:"Dividendo", ticker:"NUAM",      name:"Holding Bursátil Regional S.A.",shares:400,  unitPrice:null, amount:57038 },
-  { date:"2026-05-07", tipo:"Dividendo", ticker:"NUAM",      name:"Holding Bursátil Regional S.A.",shares:400,  unitPrice:null, amount:42780 },
-  { date:"2026-05-07", tipo:"Dividendo", ticker:"LIPIGAS",   name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null, amount:44250 },
-  // ── Facturas ITAU 2026 ────────────────────────────────────────────────────────
-  { date:"2026-05-11", tipo:"Compra",    ticker:"QUINENCO",   name:"Quiñenco S.A.",                 shares:46,   unitPrice:4000,     amount:-184328 },
-  { date:"2026-05-07", tipo:"Compra",    ticker:"ITAUCL",     name:"Banco Itaú Chile S.A.",          shares:16,   unitPrice:18303,    amount:-293370 },
-  { date:"2026-05-07", tipo:"Compra",    ticker:"ENELGXCH",   name:"Enel Generación Chile S.A.",     shares:353,  unitPrice:565,      amount:-199800 },
-  { date:"2026-03-09", tipo:"Compra",    ticker:"QUINENCO",   name:"Quiñenco S.A.",                 shares:47,   unitPrice:4162,     amount:-195941 },
-  { date:"2026-03-09", tipo:"Compra",    ticker:"HABITAT",    name:"AFP Habitat S.A.",              shares:145,  unitPrice:1370,     amount:-199004 },
-  { date:"2026-03-31", tipo:"Dividendo", ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",         shares:375,  unitPrice:null,     amount:35625 },
-  { date:"2026-02-16", tipo:"Compra",    ticker:"QUINENCO",   name:"Quiñenco S.A.",                 shares:57,   unitPrice:4310,     amount:-246109 },
-  { date:"2026-02-16", tipo:"Compra",    ticker:"NUAM",       name:"Holding Bursátil Regional S.A.",shares:19,   unitPrice:5011,     amount:-95379 },
-  { date:"2026-02-16", tipo:"Compra",    ticker:"HABITAT",    name:"AFP Habitat S.A.",              shares:143,  unitPrice:1389,     amount:-198982 },
-  { date:"2026-02-10", tipo:"Compra",    ticker:"SOQUICOM",   name:"Soquicom S.A.",                 shares:172,  unitPrice:371,      amount:-63926 },
-  { date:"2026-02-10", tipo:"Compra",    ticker:"SOQUICOM",   name:"Soquicom S.A.",                 shares:500,  unitPrice:371,      amount:-185831 },
-  { date:"2026-02-10", tipo:"Compra",    ticker:"HABITAT",    name:"AFP Habitat S.A.",              shares:172,  unitPrice:1449,     amount:-249672 },
-  { date:"2026-02-09", tipo:"Venta",     ticker:"SQM-B",      name:"SQM (Soc. Química y Minera)",   shares:21,   unitPrice:61752,    amount:1294477 },
-  // ── Historial previo ──────────────────────────────────────────────────────────
-  { date:"2026-02-04", tipo:"Retirada",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:-2000000 },
-  { date:"2025-12-26", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:57375 },
-  { date:"2025-12-23", tipo:"Dividendo",  ticker:"CFINRENTAS", name:"Independencia Adm. Gral. S.A.", shares:282,  unitPrice:null,     amount:4794 },
-  { date:"2025-12-15", tipo:"Intereses",  ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:50326 },
-  { date:"2025-12-12", tipo:"Dividendo",  ticker:"COLBUN",     name:"Colbún S.A.",                   shares:43947,unitPrice:null,     amount:181266 },
-  { date:"2025-11-17", tipo:"Dividendo",  ticker:"EMBONOR-B",  name:"Coca-Cola Embonor S.A.",         shares:168,  unitPrice:null,     amount:3696 },
-  { date:"2025-10-10", tipo:"Dividendo",  ticker:"HABITAT",    name:"AFP Habitat S.A. (Chile)",       shares:839,  unitPrice:null,     amount:16780 },
-  { date:"2025-09-30", tipo:"Dividendo",  ticker:"CFINRENTAS", name:"Independencia Adm. Gral. S.A.", shares:282,  unitPrice:null,     amount:4794 },
-  { date:"2025-09-25", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:45750 },
-  { date:"2025-07-16", tipo:"Intereses",  ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:151746.59 },
-  { date:"2025-06-30", tipo:"Dividendo",  ticker:"CFINRENTAS", name:"Independencia Adm. Gral. S.A.", shares:282,  unitPrice:null,     amount:3666 },
-  { date:"2025-06-25", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:30375 },
-  { date:"2025-05-29", tipo:"Dividendo",  ticker:"ILC",        name:"Inv. La Construcción S.A.",      shares:280,  unitPrice:null,     amount:127066 },
-  { date:"2025-05-29", tipo:"Dividendo",  ticker:"ILC",        name:"Inv. La Construcción S.A.",      shares:280,  unitPrice:null,     amount:40934 },
-  { date:"2025-05-20", tipo:"Dividendo",  ticker:"EMBONOR-B",  name:"Coca-Cola Embonor S.A.",         shares:168,  unitPrice:null,     amount:6949 },
-  { date:"2025-05-20", tipo:"Dividendo",  ticker:"EMBONOR-B",  name:"Coca-Cola Embonor S.A.",         shares:168,  unitPrice:null,     amount:443 },
-  { date:"2025-05-16", tipo:"Dividendo",  ticker:"HABITAT",    name:"AFP Habitat S.A. (Chile)",       shares:839,  unitPrice:null,     amount:46145 },
-  { date:"2025-05-09", tipo:"Dividendo",  ticker:"COLBUN",     name:"Colbún S.A.",                   shares:43947,unitPrice:null,     amount:62356 },
-  { date:"2025-05-09", tipo:"Dividendo",  ticker:"NUAM",       name:"Holding Bursátil Regional S.A.",shares:381,  unitPrice:null,     amount:41573 },
-  { date:"2025-05-09", tipo:"Dividendo",  ticker:"NUAM",       name:"Holding Bursátil Regional S.A.",shares:381,  unitPrice:null,     amount:27715 },
-  { date:"2025-05-02", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:24375 },
-  { date:"2025-04-30", tipo:"Dividendo",  ticker:"CFINRENTAS", name:"Independencia Adm. Gral. S.A.", shares:282,  unitPrice:null,     amount:18048 },
-  { date:"2025-04-10", tipo:"Dividendo",  ticker:"BICECORP",   name:"Bicecorp S.A.",                 shares:3894, unitPrice:null,     amount:87615 },
-  { date:"2025-03-31", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:30375 },
-  { date:"2025-03-28", tipo:"Dividendo",  ticker:"CFINRENTAS", name:"Independencia Adm. Gral. S.A.", shares:282,  unitPrice:null,     amount:3666 },
-  { date:"2025-03-17", tipo:"Venta",      ticker:"BCI",        name:"Banco de Crédito e Inversiones", shares:50,   unitPrice:32998,    amount:1649900 },
-  { date:"2025-03-17", tipo:"Venta",      ticker:"ANDINA-B",   name:"Embotelladora Andina S.A.",      shares:482,  unitPrice:3430,     amount:1647365 },
-  { date:"2025-03-04", tipo:"Venta",      ticker:"SECURITY",   name:"Group Security S.A.",            shares:4867, unitPrice:276.92,   amount:1347788 },
-  { date:"2025-03-04", tipo:"Compra",     ticker:"BICECORP",   name:"Bicecorp S.A.",                 shares:3894, unitPrice:276.43,   amount:-1076418.42 },
-  { date:"2025-01-31", tipo:"Dividendo",  ticker:"ANDINA-B",   name:"Embotelladora Andina S.A.",      shares:482,  unitPrice:null,     amount:74758 },
-  { date:"2025-01-09", tipo:"Compra",     ticker:"CFINRENTAS", name:"Independencia Adm. Gral. S.A.", shares:282,  unitPrice:1415,     amount:-399743 },
-  { date:"2025-01-03", tipo:"Dividendo",  ticker:"HABITAT",    name:"AFP Habitat S.A. (Chile)",       shares:839,  unitPrice:null,     amount:29365 },
-  { date:"2024-12-27", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:61500 },
-  { date:"2024-12-19", tipo:"Dividendo",  ticker:"EMBONOR-B",  name:"Coca-Cola Embonor S.A.",         shares:168,  unitPrice:null,     amount:7056 },
-  { date:"2024-12-13", tipo:"Dividendo",  ticker:"COLBUN",     name:"Colbún S.A.",                   shares:43947,unitPrice:null,     amount:243164 },
-  { date:"2024-12-11", tipo:"Compra",     ticker:"INVERCAP",   name:"Invercap S.A.",                  shares:123,  unitPrice:1620,     amount:-199616 },
-  { date:"2024-11-27", tipo:"Compra",     ticker:"HABITAT",    name:"AFP Habitat S.A. (Chile)",       shares:239,  unitPrice:833,      amount:-199443 },
-  { date:"2024-10-28", tipo:"Compra",     ticker:"HABITAT",    name:"AFP Habitat S.A. (Chile)",       shares:240,  unitPrice:830,      amount:-199556 },
-  { date:"2024-10-24", tipo:"Dividendo",  ticker:"ANDINA-B",   name:"Embotelladora Andina S.A.",      shares:482,  unitPrice:null,     amount:16966 },
-  { date:"2024-10-21", tipo:"Compra",     ticker:"HABITAT",    name:"AFP Habitat S.A. (Chile)",       shares:360,  unitPrice:830,      amount:-299333 },
-  { date:"2024-10-16", tipo:"Compra",     ticker:"EMBONOR-B",  name:"Coca-Cola Embonor S.A.",         shares:168,  unitPrice:1182,     amount:-198931 },
-  { date:"2024-10-16", tipo:"Retirada",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:-114410 },
-  { date:"2024-09-30", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:36375 },
-  { date:"2024-08-21", tipo:"Compra",     ticker:"INVERCAP",   name:"Invercap S.A.",                  shares:550,  unitPrice:1819,     amount:-1004617 },
-  { date:"2024-08-14", tipo:"Dividendo",  ticker:"ANDINA-B",   name:"Embotelladora Andina S.A.",      shares:482,  unitPrice:null,     amount:16966 },
-  { date:"2024-08-01", tipo:"Compra",     ticker:"ILC",        name:"Inv. La Construcción S.A.",      shares:150,  unitPrice:7378,     amount:-1111309 },
-  { date:"2024-07-26", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:1200000 },
-  { date:"2024-07-05", tipo:"Dividendo",  ticker:"NUAM",       name:"Holding Bursátil Regional S.A.",shares:381,  unitPrice:null,     amount:42625 },
-  { date:"2024-07-05", tipo:"Dividendo",  ticker:"NUAM",       name:"Holding Bursátil Regional S.A.",shares:381,  unitPrice:null,     amount:7265 },
-  { date:"2024-07-02", tipo:"Compra",     ticker:"ILC",        name:"Inv. La Construcción S.A.",      shares:130,  unitPrice:7923,     amount:-1034280 },
-  { date:"2024-07-01", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:1200000 },
-  { date:"2024-06-27", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:22500 },
-  { date:"2024-06-13", tipo:"Compra",     ticker:"COLBUN",     name:"Colbún S.A.",                   shares:12000,unitPrice:118.50,   amount:-1422000 },
-  { date:"2024-06-13", tipo:"Compra",     ticker:"BCI",        name:"Banco de Crédito e Inversiones", shares:50,   unitPrice:26400,    amount:-1331420 },
-  { date:"2024-06-12", tipo:"Venta",      ticker:"AAISA",      name:"ADM Americana de I.",            shares:11552,unitPrice:185.80,   amount:2137424 },
-  { date:"2024-06-12", tipo:"Venta",      ticker:"AAISA",      name:"ADM Americana de I.",            shares:7236, unitPrice:185.80,   amount:1338850 },
-  { date:"2024-05-30", tipo:"Dividendo",  ticker:"ANDINA-B",   name:"Embotelladora Andina S.A.",      shares:482,  unitPrice:null,     amount:15906 },
-  { date:"2024-05-29", tipo:"Compra",     ticker:"COLBUN",     name:"Colbún S.A.",                   shares:10000,unitPrice:123,      amount:-1230000 },
-  { date:"2024-05-29", tipo:"Compra",     ticker:"AAISA",      name:"ADM Americana de I.",            shares:5190, unitPrice:190,      amount:-995388 },
-  { date:"2024-05-27", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:1700000 },
-  { date:"2024-05-23", tipo:"Dividendo",  ticker:"ANDINA-B",   name:"Embotelladora Andina S.A.",      shares:482,  unitPrice:null,     amount:16966 },
-  { date:"2024-05-17", tipo:"Dividendo",  ticker:"AAISA",      name:"ADM Americana de I.",            shares:13598,unitPrice:null,     amount:135980 },
-  { date:"2024-05-16", tipo:"Dividendo",  ticker:"SQM-B",      name:"SQM (Soc. Química y Minera)",    shares:21,   unitPrice:null,     amount:4132 },
-  { date:"2024-05-13", tipo:"Venta",      ticker:"INVERCAP",   name:"Invercap S.A.",                  shares:95,   unitPrice:2151,     amount:204345 },
-  { date:"2024-05-10", tipo:"Dividendo",  ticker:"COLBUN",     name:"Colbún S.A.",                   shares:21947,unitPrice:null,     amount:31577 },
-  { date:"2024-05-10", tipo:"Dividendo",  ticker:"NUAM",       name:"Holding Bursátil Regional S.A.",shares:381,  unitPrice:null,     amount:3450 },
-  { date:"2024-05-06", tipo:"Dividendo",  ticker:"SECURITY",   name:"Group Security S.A.",            shares:4867, unitPrice:null,     amount:90283 },
-  { date:"2024-04-25", tipo:"Compra",     ticker:"COLBUN",     name:"Colbún S.A.",                   shares:8100, unitPrice:122.90,   amount:-1003820 },
-  { date:"2024-04-25", tipo:"Compra",     ticker:"SQM-B",      name:"SQM (Soc. Química y Minera)",    shares:9,    unitPrice:40999,    amount:-368991 },
-  { date:"2024-04-25", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:15750 },
-  { date:"2024-04-24", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:1400000 },
-  { date:"2024-04-17", tipo:"Compra",     ticker:"COLBUN",     name:"Colbún S.A.",                   shares:4425, unitPrice:123.01,   amount:-552649.25 },
-  { date:"2024-04-17", tipo:"Compra",     ticker:"SQM-B",      name:"SQM (Soc. Química y Minera)",    shares:12,   unitPrice:45000,    amount:-540000 },
-  { date:"2024-04-09", tipo:"Compra",     ticker:"COLBUN",     name:"Colbún S.A.",                   shares:9422, unitPrice:124.60,   amount:-1178871.20 },
-  { date:"2024-04-08", tipo:"Venta",      ticker:"CCU",        name:"Cía. Cervecerías Unidas S.A.",   shares:390,  unitPrice:5800,     amount:2252579 },
-  { date:"2024-04-02", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:18750 },
-  { date:"2024-03-25", tipo:"Compra",     ticker:"NUAM",       name:"Holding Bursátil Regional S.A.",shares:381,  unitPrice:4002.50,  amount:-1537524.50 },
-  { date:"2024-03-25", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:1500000 },
-  { date:"2024-03-25", tipo:"Compra",     ticker:"AAISA",      name:"ADM Americana de I.",            shares:7468, unitPrice:200,      amount:-1493600 },
-  { date:"2024-03-04", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:1710000 },
-  { date:"2024-02-29", tipo:"Venta",      ticker:"SQM-B",      name:"SQM (Soc. Química y Minera)",    shares:29,   unitPrice:45501,    amount:1314034 },
-  { date:"2024-01-25", tipo:"Dividendo",  ticker:"ANDINA-B",   name:"Embotelladora Andina S.A.",      shares:482,  unitPrice:null,     amount:16966 },
-  { date:"2024-01-08", tipo:"Venta",      ticker:"INVERCAP",   name:"Invercap S.A.",                  shares:92,   unitPrice:2096.50,  amount:188713 },
-  { date:"2024-01-05", tipo:"Compra",     ticker:"INVERCAP",   name:"Invercap S.A.",                  shares:560,  unitPrice:2116,     amount:-1189895 },
-  { date:"2023-12-28", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:25500 },
-  { date:"2023-12-27", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:1105273 },
-  { date:"2023-12-14", tipo:"Dividendo",  ticker:"SQM-B",      name:"SQM (Soc. Química y Minera)",    shares:29,   unitPrice:null,     amount:12673 },
-  { date:"2023-11-29", tipo:"Dividendo",  ticker:"CCU",        name:"Cía. Cervecerías Unidas S.A.",   shares:390,  unitPrice:null,     amount:33735 },
-  { date:"2023-11-27", tipo:"Compra",     ticker:"SQM-B",      name:"SQM (Soc. Química y Minera)",    shares:29,   unitPrice:44150,    amount:-1285684 },
-  { date:"2023-11-22", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:1300000 },
-  { date:"2023-11-14", tipo:"Compra",     ticker:"AAISA",      name:"ADM Americana de I.",            shares:4487, unitPrice:185,      amount:-834260 },
-  { date:"2023-11-02", tipo:"Venta",      ticker:"CAP",        name:"CAP S.A.",                       shares:569,  unitPrice:4892,     amount:2771956 },
-  { date:"2023-11-02", tipo:"Compra",     ticker:"CCU",        name:"Cía. Cervecerías Unidas S.A.",   shares:390,  unitPrice:5104.52,  amount:-1999056 },
-  { date:"2023-11-02", tipo:"Dividendo",  ticker:"SECURITY",   name:"Group Security S.A.",            shares:4867, unitPrice:null,     amount:26769 },
-  { date:"2023-11-02", tipo:"Dividendo",  ticker:"SECURITY",   name:"Group Security S.A.",            shares:4867, unitPrice:null,     amount:14601 },
-  { date:"2023-10-26", tipo:"Dividendo",  ticker:"ANDINA-B",   name:"Embotelladora Andina S.A.",      shares:482,  unitPrice:null,     amount:15376 },
-  { date:"2023-10-23", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:2000000 },
-  { date:"2023-10-23", tipo:"Compra",     ticker:"CAP",        name:"CAP S.A.",                       shares:396,  unitPrice:5018.53,  amount:-1995613 },
-  { date:"2023-10-02", tipo:"Compra",     ticker:"SECURITY",   name:"Group Security S.A.",            shares:4867, unitPrice:211.77,   amount:-1034974 },
-  { date:"2023-09-26", tipo:"Compra",     ticker:"CAP",        name:"CAP S.A.",                       shares:173,  unitPrice:5743.70,  amount:-997825.10 },
-  { date:"2023-09-25", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:1000000 },
-  { date:"2023-09-20", tipo:"Dividendo",  ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:null,     amount:25500 },
-  { date:"2023-09-04", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:1000000 },
-  { date:"2023-08-31", tipo:"Compra",     ticker:"LIPIGAS",    name:"Empresas Lipigas S.A.",          shares:375,  unitPrice:2680,     amount:-1009168 },
-  { date:"2023-08-28", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:1000000 },
-  { date:"2023-08-25", tipo:"Dividendo",  ticker:"ANDINA-B",   name:"Embotelladora Andina S.A.",      shares:482,  unitPrice:null,     amount:15376 },
-  { date:"2023-06-28", tipo:"Compra",     ticker:"ANDINA-B",   name:"Embotelladora Andina S.A.",      shares:482,  unitPrice:2064,     amount:-999013 },
-  { date:"2023-06-27", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:1000000 },
-  { date:"2023-05-09", tipo:"Compra",     ticker:"AAISA",      name:"ADM Americana de I.",            shares:1643, unitPrice:179.84,   amount:-299642.12 },
-  { date:"2023-05-03", tipo:"Depósito",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:300000 },
-  { date:"2023-03-19", tipo:"Retirada",   ticker:"—",          name:"—",                              shares:null, unitPrice:null,     amount:-1700000 },
+  { date:"2026-01-01", tipo:"Compra", ticker:"DEMOCLP", name:"Empresa Demo Chile S.A.", shares:100, unitPrice:1000, amount:-100000 }
 ];
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 const PRICE_KEY   = 'chile_prices_v1';
 const TOTAL_DIV   = 2708728; // dividendos + intereses históricos 2023-2026 (inc. mayo 2026)
-const CASH_CLP    = 1388543; // efectivo disponible cuenta ITAU BCS
+const CASH_CLP    = 0; // demo pública: efectivo real no versionado
 
 function fmtCLP(n, dec = 0) {
   if (n === null || n === undefined) return '—';
@@ -1055,7 +865,7 @@ function updateCharts(totalEquity) {
 // Cada dashboard guarda su propio total en localStorage (mismo origen) para que
 // el otro lo lea. El tipo de cambio USD/CLP se obtiene en vivo (sin API key).
 const FX_FALLBACK  = 950;        // USD/CLP de respaldo si fallan las APIs
-const USD_FALLBACK = 41643;      // total portafolio USD de respaldo (snapshot 2026-06-05)
+const USD_FALLBACK = 1120;       // demo pública
 const CLP_FALLBACK = 26243618;   // total portafolio CLP de respaldo (snapshot)
 let _usdClpRate = null, _usdClpRateTs = 0;
 
