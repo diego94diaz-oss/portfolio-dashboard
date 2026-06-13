@@ -29,3 +29,13 @@ Abrir:
 ## Recomendación de privacidad
 
 Este repositorio debe tratarse como código/demostración. Si se quiere publicar en GitHub Pages, idealmente reemplazar posiciones reales por datos de ejemplo o cargar datos desde un archivo local no versionado.
+
+## Calidad automatizada
+
+Antes de publicar cambios ejecuta:
+
+```bash
+python scripts/quality_check.py
+```
+
+El chequeo valida JavaScript inline de `index.html`/`chile.html` con Node, compila scripts Python si aparecen y bloquea secretos/archivos privados obvios.
