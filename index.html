@@ -246,6 +246,7 @@
   <input id="api-key-input" type="text" placeholder="Pegá tu API key de finnhub.io aquí" />
   <button onclick="saveAndFetch()">Actualizar precios</button>
   <button class="refresh-btn" onclick="fetchLivePrices()">↻ Refrescar</button>
+  <button class="refresh-btn" onclick="forgetApiKey()" title="Borra la key guardada solo en esta pestaña/sesión">Olvidar key</button>
   <span class="last-update" id="last-update"></span>
 </div>
 
@@ -551,6 +552,7 @@ const totalWithCash = totalEquity + CASH;
 // ── LIVE PRICES (Finnhub) ─────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'finnhub_api_key';
+const KEY_STORAGE = window.sessionStorage; // menor persistencia que localStorage
 
 // Tickers to skip (no cotización estándar)
 const SKIP_TICKERS = new Set(['ASST-VRS', 'MSTR-VRS']);
@@ -591,14 +593,22 @@ function fillStaticCards() {
 
 function getApiKey() {
   return document.getElementById('api-key-input').value.trim()
-      || localStorage.getItem(STORAGE_KEY) || '';
+      || KEY_STORAGE.getItem(STORAGE_KEY) || '';
 }
 
 function saveAndFetch() {
   const key = document.getElementById('api-key-input').value.trim();
   if (!key) { alert('Pegá tu API key de finnhub.io primero.'); return; }
-  localStorage.setItem(STORAGE_KEY, key);
+  KEY_STORAGE.setItem(STORAGE_KEY, key);
   fetchLivePrices();
+}
+
+function forgetApiKey() {
+  KEY_STORAGE.removeItem(STORAGE_KEY);
+  const input = document.getElementById('api-key-input');
+  if (input) input.value = '';
+  const lastEl = document.getElementById('last-update');
+  if (lastEl) lastEl.textContent = 'API key olvidada en esta sesión.';
 }
 
 async function fetchOneTicker(symbol, apiKey) {

@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "scripts": {
+    "smoke": "python scripts/static_smoke.py",
+    "test": "npm run smoke"
+  }
+}
