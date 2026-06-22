@@ -78,7 +78,7 @@
       .grid-2 { grid-template-columns: 1fr; }
       header { flex-direction: column; align-items: flex-start; gap: 4px; }
       .api-bar { flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
-      .api-bar input { width: 100%; }
+      .api-key-wrap { width: 100%; max-width: none; flex-basis: 100%; }
       .api-bar .last-update { width: 100%; margin-left: 0; }
     }
     @media (max-width: 480px) {
@@ -127,9 +127,12 @@
     .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block; margin-right: 6px; animation: livePulse 1.2s ease-in-out infinite; }
     @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
     .api-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 28px; display: flex; align-items: center; gap: 12px; font-size: 13px; }
-    .api-bar input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; color: var(--text); font-size: 12px; width: 260px; outline: none; }
-    .api-bar input:focus { border-color: var(--accent); }
+    .api-key-wrap { display: flex; align-items: center; min-width: 280px; max-width: 420px; flex: 1; }
+    .api-key-wrap input { background: var(--surface2); border: 1px solid var(--border); border-right: 0; border-radius: 6px 0 0 6px; padding: 5px 10px; color: var(--text); font-size: 12px; width: 100%; outline: none; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .api-key-wrap input:focus { border-color: var(--accent); }
+    .api-key-wrap input:focus + .key-toggle { border-color: var(--accent); }
     .api-bar button { background: var(--accent); border: none; border-radius: 6px; padding: 5px 14px; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .api-bar .key-toggle { background: var(--surface2); border: 1px solid var(--border); border-radius: 0 6px 6px 0; color: var(--muted); padding: 5px 10px; }
     .api-bar button:hover { opacity: 0.85; }
     .api-bar .refresh-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 14px; color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; }
     .api-bar .last-update { color: var(--muted); font-size: 11px; margin-left: auto; }
@@ -243,11 +246,14 @@
 
 <div class="api-bar">
   <span style="color:var(--muted)">Finnhub API Key:</span>
-  <input id="api-key-input" type="text" placeholder="Pegá tu API key de finnhub.io aquí" />
+  <div class="api-key-wrap">
+    <input id="api-key-input" type="password" autocomplete="off" spellcheck="false" placeholder="Pegá tu API key de finnhub.io aquí" />
+    <button class="key-toggle" type="button" onclick="toggleApiKeyVisibility()" aria-controls="api-key-input" aria-label="Mostrar u ocultar API key">Mostrar</button>
+  </div>
   <button onclick="saveAndFetch()">Actualizar precios</button>
   <button class="refresh-btn" onclick="fetchLivePrices()">↻ Refrescar</button>
   <button class="refresh-btn" onclick="forgetApiKey()" title="Borra la key guardada solo en esta pestaña/sesión">Olvidar key</button>
-  <span class="last-update" id="last-update"></span>
+  <span class="last-update" id="last-update" role="status" aria-live="polite"></span>
 </div>
 
 <div class="main">
@@ -596,32 +602,58 @@ function getApiKey() {
       || KEY_STORAGE.getItem(STORAGE_KEY) || '';
 }
 
+function setFinnhubStatus(message, kind = 'info') {
+  const lastEl = document.getElementById('last-update');
+  if (!lastEl) return;
+  const color = kind === 'error' ? 'var(--red)' : kind === 'ok' ? 'var(--green)' : 'var(--muted)';
+  lastEl.style.color = color;
+  lastEl.textContent = message;
+}
+
+function toggleApiKeyVisibility() {
+  const input = document.getElementById('api-key-input');
+  const btn = document.querySelector('.key-toggle');
+  if (!input) return;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  if (btn) btn.textContent = show ? 'Ocultar' : 'Mostrar';
+}
+
 function saveAndFetch() {
   const key = document.getElementById('api-key-input').value.trim();
-  if (!key) { alert('Pegá tu API key de finnhub.io primero.'); return; }
+  if (!key) { setFinnhubStatus('Pegá tu API key de finnhub.io primero.', 'error'); return; }
   KEY_STORAGE.setItem(STORAGE_KEY, key);
   fetchLivePrices();
 }
 
 function forgetApiKey() {
   KEY_STORAGE.removeItem(STORAGE_KEY);
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
   const input = document.getElementById('api-key-input');
-  if (input) input.value = '';
-  const lastEl = document.getElementById('last-update');
-  if (lastEl) lastEl.textContent = 'API key olvidada en esta sesión.';
+  if (input) { input.value = ''; input.type = 'password'; }
+  const btn = document.querySelector('.key-toggle');
+  if (btn) btn.textContent = 'Mostrar';
+  setFinnhubStatus('API key olvidada en esta sesión.', 'info');
+}
+
+function describeFinnhubHttpError(status) {
+  if (status === 401 || status === 403) return 'API key inválida o sin permisos';
+  if (status === 429) return 'rate limit de Finnhub alcanzado; espera un minuto';
+  return `Finnhub respondió HTTP ${status}`;
 }
 
 async function fetchOneTicker(symbol, apiKey) {
-  if (SKIP_TICKERS.has(symbol)) return null;
+  if (SKIP_TICKERS.has(symbol)) return { data: null, skipped: true };
   try {
     const res = await fetch(
       `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${apiKey}`
     );
-    if (!res.ok) return null;
+    if (!res.ok) return { data: null, error: describeFinnhubHttpError(res.status) };
     const data = await res.json();
-    return (data && data.c && data.c !== 0) ? data : null;
-  } catch {
-    return null;
+    if (data && data.c && data.c !== 0) return { data };
+    return { data: null, error: 'sin precio disponible para este ticker' };
+  } catch (err) {
+    return { data: null, error: 'error de red consultando Finnhub' };
   }
 }
 
@@ -630,7 +662,6 @@ let fetchInProgress = false; // evita pasadas solapadas si se aprieta refrescar 
 async function fetchLivePrices() {
   if (fetchInProgress) return;
   const apiKey = getApiKey();
-  const lastEl = document.getElementById('last-update');
 
   if (!apiKey) {
     portfolio.forEach(p => {
@@ -640,6 +671,10 @@ async function fetchLivePrices() {
       if (lv) lv.innerHTML = msg;
       if (ch) ch.innerHTML = msg;
     });
+    livePricesReady = true;
+    fillStaticCards();
+    updateTotalCard();
+    setFinnhubStatus('Ingresá API key para precios live. Se muestran valores snapshot.', 'info');
     return;
   }
 
@@ -660,15 +695,19 @@ async function fetchLivePrices() {
     if (lv) lv.innerHTML = LOADING_HTML;
     if (ch) ch.innerHTML = LOADING_HTML;
   });
-  if (lastEl) lastEl.textContent = 'Cargando precios...';
+  setFinnhubStatus('Cargando precios...', 'info');
 
   // Fetch secuencial con pequeña pausa para evitar rate limit
   let ok = 0;
+  let failed = 0;
+  const errors = new Set();
   for (const p of portfolio) {
-    const data = await fetchOneTicker(p.ticker, apiKey);
+    const result = await fetchOneTicker(p.ticker, apiKey);
+    const data = result && result.data ? result.data : null;
     liveCache[p.ticker] = data;
     applyLiveCell(p.ticker, data);
     if (data) ok++;
+    else if (result && !result.skipped) { failed++; if (result.error) errors.add(result.error); }
     // Pausa de 1100ms entre llamadas (plan gratuito Finnhub: 60 req/min)
     await new Promise(r => setTimeout(r, 1100));
   }
@@ -677,9 +716,13 @@ async function fetchLivePrices() {
   livePricesReady = true;
 
   const now = new Date().toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
-  if (lastEl) lastEl.textContent = ok > 0
-    ? `✓ ${ok} precios actualizados — ${now}`
-    : '⚠ Sin datos — verificá la API key';
+  if (ok > 0) {
+    const extra = failed ? ` · ${failed} sin dato` : '';
+    setFinnhubStatus(`✓ ${ok} precios actualizados${extra} — ${now}`, failed ? 'info' : 'ok');
+  } else {
+    const reason = Array.from(errors)[0] || 'verificá la API key o la conexión';
+    setFinnhubStatus(`⚠ Sin datos: ${reason}. Se mantienen valores snapshot.`, 'error');
+  }
 
   // ── Calcular totales usando liveCache (mismo patrón que variación del día) ──
   let totalDayChg = 0, coveredValue = 0;
@@ -1611,7 +1654,8 @@ function updateThemeBtn() {
 updateThemeBtn();
 
 (function init() {
-  const saved = localStorage.getItem(STORAGE_KEY);
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  const saved = KEY_STORAGE.getItem(STORAGE_KEY);
   if (saved) {
     // Las tarjetas quedan con spinner hasta que fetchLivePrices() termine
     document.getElementById('api-key-input').value = saved;
