@@ -1581,22 +1581,80 @@ function updateAllLive(liveTotal) {
 // ── TOTAL COMBINADO (USD 🇺🇸 + CLP 🇨🇱) ─────────────────────────────────────────
 // Cada dashboard guarda su propio total en localStorage (mismo origen) para que
 // el otro lo lea. El tipo de cambio USD/CLP se obtiene en vivo (sin API key).
-const FX_FALLBACK  = 950;        // USD/CLP de respaldo si fallan las APIs
+const FX_FALLBACK  = 902.61;     // USD/CLP de respaldo actualizado (solo si fallan todas las fuentes)
 const USD_FALLBACK = 41643;      // total portafolio USD de respaldo (snapshot 2026-06-05)
 const CLP_FALLBACK = 26243618;   // total portafolio CLP de respaldo (snapshot)
-let _usdClpRate = null, _usdClpRateTs = 0;
+const FX_MIN_CLP = 700;          // descarta respuestas obviamente malas
+const FX_MAX_CLP = 1300;
+let _usdClpRate = null, _usdClpRateTs = 0, _usdClpSource = '';
+
+function isValidUsdClpRate(v) {
+  return Number.isFinite(v) && v >= FX_MIN_CLP && v <= FX_MAX_CLP;
+}
+
+function fmtFx(v) {
+  return Number(v).toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+async function fetchJsonWithTimeout(url, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 async function getUsdClpRate() {
-  // Cache de 10 minutos: el TC se refresca en pasadas posteriores
-  if (_usdClpRate && (Date.now() - _usdClpRateTs) < 600000) return { rate: _usdClpRate, live: true };
-  const sources = [
-    async () => { const r = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'); const d = await r.json(); return d && d.usd && d.usd.clp; },
-    async () => { const r = await fetch('https://open.er-api.com/v6/latest/USD'); const d = await r.json(); return d && d.rates && d.rates.CLP; },
-  ];
-  for (const src of sources) {
-    try { const v = await src(); if (v && v > 0) { _usdClpRate = v; _usdClpRateTs = Date.now(); return { rate: v, live: true }; } } catch (e) {}
+  // Cache de 10 minutos: el TC se refresca en pasadas posteriores.
+  if (_usdClpRate && (Date.now() - _usdClpRateTs) < 600000) {
+    return { rate: _usdClpRate, live: true, source: _usdClpSource || 'cache' };
   }
-  return { rate: FX_FALLBACK, live: false };
+
+  const cacheBust = Date.now();
+  const sources = [
+    {
+      name: 'OpenER',
+      read: async () => {
+        const d = await fetchJsonWithTimeout('https://open.er-api.com/v6/latest/USD?t=' + cacheBust);
+        return Number(d && d.rates && d.rates.CLP);
+      },
+    },
+    {
+      name: 'Fawaz/jsDelivr',
+      read: async () => {
+        const d = await fetchJsonWithTimeout('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json?t=' + cacheBust);
+        return Number(d && d.usd && d.usd.clp);
+      },
+    },
+    {
+      name: 'Fawaz/pages',
+      read: async () => {
+        const d = await fetchJsonWithTimeout('https://latest.currency-api.pages.dev/v1/currencies/usd.json?t=' + cacheBust);
+        return Number(d && d.usd && d.usd.clp);
+      },
+    },
+  ];
+
+  const settled = await Promise.allSettled(sources.map(async s => ({ name: s.name, rate: await s.read() })));
+  const ok = settled
+    .filter(x => x.status === 'fulfilled' && isValidUsdClpRate(x.value.rate))
+    .map(x => x.value)
+    .sort((a, b) => a.rate - b.rate);
+
+  if (ok.length) {
+    // Mediana: evita usar una fuente aislada si una API devuelve un valor raro.
+    const chosen = ok[Math.floor(ok.length / 2)];
+    _usdClpRate = chosen.rate;
+    _usdClpRateTs = Date.now();
+    _usdClpSource = ok.map(x => x.name).join(' + ');
+    return { rate: chosen.rate, live: true, source: _usdClpSource, samples: ok.length };
+  }
+
+  return { rate: FX_FALLBACK, live: false, source: 'fallback', samples: 0 };
 }
 
 async function renderCombinedCLP(own) {
@@ -1607,7 +1665,8 @@ async function renderCombinedCLP(own) {
   if (!livePricesReady) return;
   const usd = parseFloat(localStorage.getItem('combined_total_usd')) || USD_FALLBACK;
   const clp = parseFloat(localStorage.getItem('combined_total_clp')) || CLP_FALLBACK;
-  const { rate, live } = await getUsdClpRate();
+  const fx = await getUsdClpRate();
+  const rate = fx.rate;
   const combined = clp + usd * rate;
   const hora = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
   const elV = document.getElementById('combined-clp-value');
@@ -1615,9 +1674,11 @@ async function renderCombinedCLP(own) {
   if (elV) elV.textContent = '$' + Math.round(combined).toLocaleString('es-CL');
   if (elS) elS.textContent =
     'USD $' + Math.round(usd).toLocaleString('en-US') +
-    ' × $' + Math.round(rate).toLocaleString('es-CL') +
+    ' × TC $' + fmtFx(rate) +
     ' + CLP $' + Math.round(clp).toLocaleString('es-CL') +
-    (live ? ' · TC live' : ' · TC est.') + ' · ' + hora;
+    (fx.live ? ' · dólar live' : ' · dólar respaldo') +
+    ' · ' + (fx.source || 'sin fuente') +
+    ' · ' + hora;
 }
 
 // Si la otra página (CLP) guarda su total en otra pestaña, refrescar la tarjeta al instante
