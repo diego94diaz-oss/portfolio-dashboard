@@ -78,7 +78,7 @@
       .grid-2 { grid-template-columns: 1fr; }
       header { flex-direction: column; align-items: flex-start; gap: 4px; }
       .api-bar { flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
-      .api-key-wrap { width: 100%; max-width: none; flex-basis: 100%; }
+
       .api-bar .last-update { width: 100%; margin-left: 0; }
     }
     @media (max-width: 480px) {
@@ -127,10 +127,7 @@
     .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block; margin-right: 6px; animation: livePulse 1.2s ease-in-out infinite; }
     @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
     .api-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 28px; display: flex; align-items: center; gap: 12px; font-size: 13px; }
-    .api-key-wrap { display: flex; align-items: center; min-width: 280px; max-width: 420px; flex: 1; }
-    .api-key-wrap input { background: var(--surface2); border: 1px solid var(--border); border-right: 0; border-radius: 6px 0 0 6px; padding: 5px 10px; color: var(--text); font-size: 12px; width: 100%; outline: none; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
-    .api-key-wrap input:focus { border-color: var(--accent); }
-    .api-key-wrap input:focus + .key-toggle { border-color: var(--accent); }
+
     .api-bar button { background: var(--accent); border: none; border-radius: 6px; padding: 5px 14px; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
     .api-bar .key-toggle { background: var(--surface2); border: 1px solid var(--border); border-radius: 0 6px 6px 0; color: var(--muted); padding: 5px 10px; }
     .api-bar button:hover { opacity: 0.85; }
@@ -245,14 +242,8 @@
 </nav>
 
 <div class="api-bar">
-  <span style="color:var(--muted)">Finnhub API Key:</span>
-  <div class="api-key-wrap">
-    <input id="api-key-input" type="password" autocomplete="off" spellcheck="false" placeholder="Pegá tu API key de finnhub.io aquí" />
-    <button class="key-toggle" type="button" onclick="toggleApiKeyVisibility()" aria-controls="api-key-input" aria-label="Mostrar u ocultar API key">Mostrar</button>
-  </div>
-  <button onclick="saveAndFetch()">Actualizar precios</button>
+  <span style="color:var(--muted)">Precios live vía Yahoo Finance · Sin API key requerida</span>
   <button class="refresh-btn" onclick="fetchLivePrices()">↻ Refrescar</button>
-  <button class="refresh-btn" onclick="forgetApiKey()" title="Borra la key guardada solo en esta pestaña/sesión">Olvidar key</button>
   <span class="last-update" id="last-update" role="status" aria-live="polite"></span>
 </div>
 
@@ -555,10 +546,7 @@ const CASH = 130.71; // tras compras LDI+ASST 03/05-jun (-$1,665.96). Previo $1,
 const totalEquity = portfolio.reduce((s, p) => s + p.value, 0);
 const totalWithCash = totalEquity + CASH;
 
-// ── LIVE PRICES (Finnhub) ─────────────────────────────────────────────────────
-
-const STORAGE_KEY = 'finnhub_api_key';
-const KEY_STORAGE = window.sessionStorage; // menor persistencia que localStorage
+// ── LIVE PRICES (Yahoo Finance) ───────────────────────────────────────────────
 
 // Tickers to skip (no cotización estándar)
 const SKIP_TICKERS = new Set(['ASST-VRS', 'MSTR-VRS']);
@@ -574,7 +562,7 @@ const LOADING_HTML = '<span class="loading-cell"><span class="live-dot"></span>C
 const CARD_SPINNER_HTML = LOADING_HTML;
 const LIVE_LOADING_HTML = '<span class="live-dot"></span>Cargando precios en vivo…';
 
-// true cuando terminó una pasada completa de precios live (o no habrá: sin API key)
+// true cuando terminó una pasada completa de precios live
 let livePricesReady = false;
 
 // Pone spinner en todas las tarjetas del resumen (mientras cargan los precios)
@@ -597,12 +585,7 @@ function fillStaticCards() {
   if (cashEl) cashEl.textContent = `$${fmt(CASH, 0)}`;
 }
 
-function getApiKey() {
-  return document.getElementById('api-key-input').value.trim()
-      || KEY_STORAGE.getItem(STORAGE_KEY) || '';
-}
-
-function setFinnhubStatus(message, kind = 'info') {
+function setStatus(message, kind = 'info') {
   const lastEl = document.getElementById('last-update');
   if (!lastEl) return;
   const color = kind === 'error' ? 'var(--red)' : kind === 'ok' ? 'var(--green)' : 'var(--muted)';
@@ -610,74 +593,39 @@ function setFinnhubStatus(message, kind = 'info') {
   lastEl.textContent = message;
 }
 
-function toggleApiKeyVisibility() {
-  const input = document.getElementById('api-key-input');
-  const btn = document.querySelector('.key-toggle');
-  if (!input) return;
-  const show = input.type === 'password';
-  input.type = show ? 'text' : 'password';
-  if (btn) btn.textContent = show ? 'Ocultar' : 'Mostrar';
+const YF_PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
+
+function withTimeout(promise, ms) {
+  return Promise.race([promise, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
 }
 
-function saveAndFetch() {
-  const key = document.getElementById('api-key-input').value.trim();
-  if (!key) { setFinnhubStatus('Pegá tu API key de finnhub.io primero.', 'error'); return; }
-  KEY_STORAGE.setItem(STORAGE_KEY, key);
-  fetchLivePrices();
-}
-
-function forgetApiKey() {
-  KEY_STORAGE.removeItem(STORAGE_KEY);
-  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-  const input = document.getElementById('api-key-input');
-  if (input) { input.value = ''; input.type = 'password'; }
-  const btn = document.querySelector('.key-toggle');
-  if (btn) btn.textContent = 'Mostrar';
-  setFinnhubStatus('API key olvidada en esta sesión.', 'info');
-}
-
-function describeFinnhubHttpError(status) {
-  if (status === 401 || status === 403) return 'API key inválida o sin permisos';
-  if (status === 429) return 'rate limit de Finnhub alcanzado; espera un minuto';
-  return `Finnhub respondió HTTP ${status}`;
-}
-
-async function fetchOneTicker(symbol, apiKey) {
+async function fetchOneTicker(symbol) {
   if (SKIP_TICKERS.has(symbol)) return { data: null, skipped: true };
-  try {
-    const res = await fetch(
-      `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${apiKey}`
-    );
-    if (!res.ok) return { data: null, error: describeFinnhubHttpError(res.status) };
-    const data = await res.json();
-    if (data && data.c && data.c !== 0) return { data };
-    return { data: null, error: 'sin precio disponible para este ticker' };
-  } catch (err) {
-    return { data: null, error: 'error de red consultando Finnhub' };
+  const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
+  for (let i = 0; i < YF_PROXIES.length; i++) {
+    try {
+      const res  = await withTimeout(fetch(YF_PROXIES[i](yfUrl)), 8000);
+      if (!res.ok) continue;
+      const json = await res.json();
+      const meta = json?.chart?.result?.[0]?.meta;
+      if (!meta || !meta.regularMarketPrice) continue;
+      const c  = meta.regularMarketPrice;
+      const pc = meta.chartPreviousClose || meta.previousClose || c;
+      const d  = c - pc;
+      const dp = pc ? (d / pc) * 100 : 0;
+      return { data: { c, d, dp } };
+    } catch (e) { /* try next proxy */ }
   }
+  return { data: null, error: 'sin datos en Yahoo Finance' };
 }
 
 let fetchInProgress = false; // evita pasadas solapadas si se aprieta refrescar durante una carga
 
 async function fetchLivePrices() {
   if (fetchInProgress) return;
-  const apiKey = getApiKey();
-
-  if (!apiKey) {
-    portfolio.forEach(p => {
-      const lv = document.getElementById(`live-${p.ticker}`);
-      const ch = document.getElementById(`chg-${p.ticker}`);
-      const msg = '<span style="color:var(--muted);font-size:11px">Ingresá API key</span>';
-      if (lv) lv.innerHTML = msg;
-      if (ch) ch.innerHTML = msg;
-    });
-    livePricesReady = true;
-    fillStaticCards();
-    updateTotalCard();
-    setFinnhubStatus('Ingresá API key para precios live. Se muestran valores snapshot.', 'info');
-    return;
-  }
-
   fetchInProgress = true;
 
   // Mostrar indicador de carga en tarjetas, tarjeta anual, heatmap y etiquetas LIVE
@@ -695,21 +643,20 @@ async function fetchLivePrices() {
     if (lv) lv.innerHTML = LOADING_HTML;
     if (ch) ch.innerHTML = LOADING_HTML;
   });
-  setFinnhubStatus('Cargando precios...', 'info');
+  setStatus('Cargando precios...', 'info');
 
-  // Fetch secuencial con pequeña pausa para evitar rate limit
+  // Fetch secuencial con pausa corta entre llamadas
   let ok = 0;
   let failed = 0;
   const errors = new Set();
   for (const p of portfolio) {
-    const result = await fetchOneTicker(p.ticker, apiKey);
+    const result = await fetchOneTicker(p.ticker);
     const data = result && result.data ? result.data : null;
     liveCache[p.ticker] = data;
     applyLiveCell(p.ticker, data);
     if (data) ok++;
     else if (result && !result.skipped) { failed++; if (result.error) errors.add(result.error); }
-    // Pausa de 1100ms entre llamadas (plan gratuito Finnhub: 60 req/min)
-    await new Promise(r => setTimeout(r, 1100));
+    await new Promise(r => setTimeout(r, 200));
   }
 
   // Pasada completa terminada: los valores derivados de precios ya pueden mostrarse
@@ -718,10 +665,10 @@ async function fetchLivePrices() {
   const now = new Date().toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
   if (ok > 0) {
     const extra = failed ? ` · ${failed} sin dato` : '';
-    setFinnhubStatus(`✓ ${ok} precios actualizados${extra} — ${now}`, failed ? 'info' : 'ok');
+    setStatus(`✓ ${ok} precios actualizados${extra} — ${now}`, failed ? 'info' : 'ok');
   } else {
-    const reason = Array.from(errors)[0] || 'verificá la API key o la conexión';
-    setFinnhubStatus(`⚠ Sin datos: ${reason}. Se mantienen valores snapshot.`, 'error');
+    const reason = Array.from(errors)[0] || 'verificá tu conexión';
+    setStatus(`⚠ Sin datos: ${reason}. Se mantienen valores snapshot.`, 'error');
   }
 
   // ── Calcular totales usando liveCache (mismo patrón que variación del día) ──
@@ -764,7 +711,7 @@ async function fetchLivePrices() {
     dayValEl.className   = 'value';
     dayValEl.style.color = 'var(--muted)';
     dayValEl.textContent = '—';
-    if (daySubEl) daySubEl.textContent = 'Sin datos live — verificá la API key';
+    if (daySubEl) daySubEl.textContent = 'Sin datos live disponibles';
   }
 
   // Card valor total
@@ -1715,28 +1662,7 @@ function updateThemeBtn() {
 updateThemeBtn();
 
 (function init() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-  const saved = KEY_STORAGE.getItem(STORAGE_KEY);
-  if (saved) {
-    // Las tarjetas quedan con spinner hasta que fetchLivePrices() termine
-    document.getElementById('api-key-input').value = saved;
-    fetchLivePrices();
-  } else {
-    // Sin API key no habrá precios live: mostrar valores snapshot de inmediato
-    livePricesReady = true;
-    renderYearly();
-    renderHeatmap();
-    fillStaticCards();
-    updateTotalCard();
-    const dv = document.getElementById('day-chg-value');
-    const ds = document.getElementById('day-chg-sub');
-    if (dv) { dv.className = 'value'; dv.style.color = 'var(--muted)'; dv.textContent = '—'; }
-    if (ds) ds.textContent = 'Cargá precios live';
-    portfolio.forEach(p => {
-      const cell = document.getElementById(`live-${p.ticker}`);
-      if (cell) cell.innerHTML = '<span style="color:var(--muted);font-size:11px">Ingresá API key</span>';
-    });
-  }
+  fetchLivePrices();
 })();
 </script>
 </body>
