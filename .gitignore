@@ -1,0 +1,24 @@
+# Datos financieros sensibles - NUNCA a GitHub
+data/
+*.json
+*.csv
+*.xlsx
+
+# Memoria personal del agente
+memory.md
+MEMORY.md
+memory/
+
+# Análisis (outputs locales)
+analysis/
+
+# Python
+__pycache__/
+*.pyc
+
+# Claude interno
+.claude/
+
+# Sistema
+.DS_Store
+Thumbs.db
