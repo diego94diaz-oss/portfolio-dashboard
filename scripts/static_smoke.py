@@ -13,6 +13,14 @@ ROOT = Path(__file__).resolve().parents[1]
 HTML_FILES = [ROOT / 'index.html', ROOT / 'chile.html']
 
 
+def is_within_root(path: Path) -> bool:
+    try:
+        path.relative_to(ROOT.resolve())
+        return True
+    except ValueError:
+        return False
+
+
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, fmt: str, *args):
         return
@@ -43,7 +51,7 @@ def assert_structure(path: Path) -> None:
         if ref.startswith(('http://', 'https://', '#', 'mailto:', 'tel:', 'data:', '//')):
             continue
         candidate = (ROOT / ref.split('?', 1)[0].split('#', 1)[0]).resolve()
-        if not candidate.exists():
+        if not is_within_root(candidate) or not candidate.exists():
             missing.append(ref)
     if missing:
         raise SystemExit(f'MISSING_ASSETS {path.name}: ' + ', '.join(missing[:20]))
